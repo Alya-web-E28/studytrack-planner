@@ -785,16 +785,16 @@ function openDayModal(key, items) {
 // ---------- Subjects ----------
 
 const SUBJECT_COLORS = [
-  "#ef4444",
-  "#f97316",
-  "#f59e0b",
-  "#84cc16",
-  "#22c55e",
-  "#14b8a6",
-  "#3b82f6",
-  "#6366f1",
-  "#a855f7",
-  "#ec4899",
+  "#ef4444", // red
+  "#f59e0b", // amber
+  "#facc15", // yellow
+  "#22c55e", // green
+  "#06b6d4", // cyan / light blue
+  "#3b82f6", // blue
+  "#6366f1", // indigo
+  "#a855f7", // purple
+  "#ec4899", // pink
+  "#ffb4a2", // peach
 ];
 
 function getSubjectById(id) {

@@ -879,6 +879,10 @@ img {
   margin-bottom: 18px;
 }
 
+.page-header[hidden] {
+  display: none;
+}
+
 .page-header .view-title {
   margin: 0;
 }

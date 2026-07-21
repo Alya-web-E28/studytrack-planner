@@ -15,19 +15,19 @@
   <div id="welcomeScreen" class="welcome-screen">
     <div class="welcome-card">
       <img src="assets/wave.svg" class="welcome-icon" alt="" />
-      <h1 id="authHeading">Welcome!</h1>
-      <p id="authSub" class="auth-sub">Let's get you organized for the term.</p>
+      <h1 id="authHeading" data-i18n="welcome_title">Welcome!</h1>
+      <p id="authSub" class="auth-sub" data-i18n="welcome_subtitle">Let's get you organized for the term.</p>
 
       <div id="authError" class="auth-error" hidden></div>
 
       <div id="authChoiceButtons" class="auth-choice-buttons">
-        <button id="showCreateBtn" class="primary-btn">Create New Account</button>
-        <button id="showLoginBtn" class="primary-btn secondary-style">Log In</button>
+        <button id="showCreateBtn" class="primary-btn" data-i18n="welcome_createBtn">Create New Account</button>
+        <button id="showLoginBtn" class="primary-btn secondary-style" data-i18n="welcome_loginBtn">Log In</button>
       </div>
 
       <div id="authNameWrap" class="auth-step" hidden>
-        <input id="authNameInput" class="auth-name-input" placeholder="First Last" autocomplete="off" maxlength="60" />
-        <button id="authNameContinueBtn" class="primary-btn">Continue</button>
+        <input id="authNameInput" class="auth-name-input" data-i18n-placeholder="welcome_namePlaceholder" placeholder="First Last" autocomplete="off" maxlength="60" />
+        <button id="authNameContinueBtn" class="primary-btn" data-i18n="welcome_continueBtn">Continue</button>
       </div>
 
       <div id="authPinWrap" class="auth-step" hidden>
@@ -35,8 +35,8 @@
         <div id="authPinPad" class="pinpad"></div>
       </div>
 
-      <button id="authSwitchLink" class="link-btn" hidden>Not you? Use a different account</button>
-      <button id="authBackLink" class="link-btn" hidden>&larr; Back</button>
+      <button id="authSwitchLink" class="link-btn" data-i18n="welcome_switchLink" hidden>Not you? Use a different account</button>
+      <button id="authBackLink" class="link-btn" data-i18n="welcome_backLink" hidden>&larr; Back</button>
     </div>
   </div>
 
@@ -62,19 +62,19 @@
             <img src="assets/memo.svg" alt="" />
             <div>
               <span class="stat-value" id="statAssignmentsHome">0</span>
-              <span class="stat-label">Assignments due</span>
+              <span class="stat-label" data-i18n="home_assignmentsDue">Assignments due</span>
             </div>
           </div>
           <div class="stat-card exam-accent">
             <img src="assets/books.svg" alt="" />
             <div>
               <span class="stat-value" id="statExamsHome">0</span>
-              <span class="stat-label">Exams coming up</span>
+              <span class="stat-label" data-i18n="home_examsComingUp">Exams coming up</span>
             </div>
           </div>
         </div>
 
-        <h3 class="section-title">Upcoming</h3>
+        <h3 class="section-title" data-i18n="home_upcoming">Upcoming</h3>
         <div id="upcomingList" class="item-list"></div>
       </section>
 
@@ -85,82 +85,82 @@
           <button id="nextMonth" class="icon-btn small">&rsaquo;</button>
         </div>
         <div class="calendar-legend">
-          <span><i class="dot assignment-dot"></i> Assignment</span>
-          <span><i class="dot exam-dot"></i> Exam</span>
+          <span><i class="dot assignment-dot"></i> <span data-i18n="calendar_legendAssignment">Assignment</span></span>
+          <span><i class="dot exam-dot"></i> <span data-i18n="calendar_legendExam">Exam</span></span>
         </div>
         <div class="calendar-weekdays">
-          <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+          <span data-i18n="weekday_mo">Mo</span><span data-i18n="weekday_tu">Tu</span><span data-i18n="weekday_we">We</span><span data-i18n="weekday_th">Th</span><span data-i18n="weekday_fr">Fr</span><span data-i18n="weekday_sa">Sa</span><span data-i18n="weekday_su">Su</span>
         </div>
         <div id="calendarGrid" class="calendar-grid"></div>
       </section>
 
       <section id="view-assignments" class="view">
-        <h2 class="view-title"><img src="assets/memo.svg" class="inline-icon" alt="">Assignments</h2>
+        <h2 class="view-title"><img src="assets/memo.svg" class="inline-icon" alt=""><span data-i18n="assignments_title">Assignments</span></h2>
         <div class="filter-row" id="assignmentFilters">
-          <button class="filter-btn active" data-filter="all">All</button>
-          <button class="filter-btn" data-filter="pending">Pending</button>
-          <button class="filter-btn" data-filter="completed">Completed</button>
+          <button class="filter-btn active" data-filter="all" data-i18n="filter_all">All</button>
+          <button class="filter-btn" data-filter="pending" data-i18n="filter_pending">Pending</button>
+          <button class="filter-btn" data-filter="completed" data-i18n="filter_completed">Completed</button>
         </div>
         <div id="assignmentsList" class="item-list checklist"></div>
       </section>
 
       <section id="view-exams" class="view">
-        <h2 class="view-title"><img src="assets/books.svg" class="inline-icon" alt="">Exams</h2>
+        <h2 class="view-title"><img src="assets/books.svg" class="inline-icon" alt=""><span data-i18n="exams_title">Exams</span></h2>
         <div class="filter-row" id="examFilters">
-          <button class="filter-btn active" data-filter="all">All</button>
-          <button class="filter-btn" data-filter="pending">Pending</button>
-          <button class="filter-btn" data-filter="completed">Completed</button>
+          <button class="filter-btn active" data-filter="all" data-i18n="filter_all">All</button>
+          <button class="filter-btn" data-filter="pending" data-i18n="filter_pending">Pending</button>
+          <button class="filter-btn" data-filter="completed" data-i18n="filter_completed">Completed</button>
         </div>
         <div id="examsList" class="item-list checklist"></div>
       </section>
 
       <section id="view-grades" class="view">
-        <h2 class="view-title"><img src="assets/hundred.svg" class="inline-icon" alt="">Grades</h2>
-        <p class="view-sub" id="gradesCount">No grades recorded yet.</p>
+        <h2 class="view-title"><img src="assets/hundred.svg" class="inline-icon" alt=""><span data-i18n="grades_title">Grades</span></h2>
+        <p class="view-sub" id="gradesCount" data-i18n="grades_none">No grades recorded yet.</p>
         <div id="gradesList" class="item-list"></div>
       </section>
 
       <section id="view-add-assignment" class="view">
         <div class="page-header">
           <button id="backFromAssignment" class="icon-btn small">&larr;</button>
-          <h2 class="view-title"><img src="assets/memo.svg" class="inline-icon" alt=""><span id="assignmentPageTitle">New Assignment</span></h2>
+          <h2 class="view-title"><img src="assets/memo.svg" class="inline-icon" alt=""><span id="assignmentPageTitle" data-i18n="addAssignment_newTitle">New Assignment</span></h2>
         </div>
         <form id="assignmentForm" class="add-form">
-          <label>Assignment name
-            <input id="aName" required placeholder="e.g. Essay on Photosynthesis" />
+          <label><span data-i18n="field_assignmentName">Assignment name</span>
+            <input id="aName" required data-i18n-placeholder="field_assignmentNamePlaceholder" placeholder="e.g. Essay on Photosynthesis" />
           </label>
-          <label>Details
-            <textarea id="aDetails" rows="3" placeholder="Any notes about the assignment..."></textarea>
+          <label><span data-i18n="field_details">Details</span>
+            <textarea id="aDetails" rows="3" data-i18n-placeholder="field_detailsPlaceholderAssignment" placeholder="Any notes about the assignment..."></textarea>
           </label>
-          <label>Due date
+          <label><span data-i18n="field_dueDate">Due date</span>
             <input id="aDueDate" type="date" required />
           </label>
-          <label>Teacher
-            <input id="aTeacher" required placeholder="e.g. Mr. Smith" />
+          <label><span data-i18n="field_teacher">Teacher</span>
+            <input id="aTeacher" required data-i18n-placeholder="field_teacherPlaceholderAssignment" placeholder="e.g. Mr. Smith" />
           </label>
-          <button type="submit" id="assignmentSubmitBtn" class="primary-btn assignment-btn">Add Assignment</button>
+          <button type="submit" id="assignmentSubmitBtn" class="primary-btn assignment-btn" data-i18n="btn_addAssignment">Add Assignment</button>
         </form>
       </section>
 
       <section id="view-add-exam" class="view">
         <div class="page-header">
           <button id="backFromExam" class="icon-btn small">&larr;</button>
-          <h2 class="view-title"><img src="assets/books.svg" class="inline-icon" alt=""><span id="examPageTitle">New Exam</span></h2>
+          <h2 class="view-title"><img src="assets/books.svg" class="inline-icon" alt=""><span id="examPageTitle" data-i18n="addExam_newTitle">New Exam</span></h2>
         </div>
         <form id="examForm" class="add-form">
-          <label>Exam / Subject
-            <input id="eName" required placeholder="e.g. Biology Midterm" />
+          <label><span data-i18n="field_examName">Exam / Subject</span>
+            <input id="eName" required data-i18n-placeholder="field_examNamePlaceholder" placeholder="e.g. Biology Midterm" />
           </label>
-          <label>Details
-            <textarea id="eDetails" rows="3" placeholder="Topics covered, room number..."></textarea>
+          <label><span data-i18n="field_details">Details</span>
+            <textarea id="eDetails" rows="3" data-i18n-placeholder="field_detailsPlaceholderExam" placeholder="Topics covered, room number..."></textarea>
           </label>
-          <label>Date
+          <label><span data-i18n="field_date">Date</span>
             <input id="eDate" type="date" required />
           </label>
-          <label>Teacher
-            <input id="eTeacher" required placeholder="e.g. Ms. Johnson" />
+          <label><span data-i18n="field_teacher">Teacher</span>
+            <input id="eTeacher" required data-i18n-placeholder="field_teacherPlaceholderExam" placeholder="e.g. Ms. Johnson" />
           </label>
-          <button type="submit" id="examSubmitBtn" class="primary-btn exam-btn">Add Exam</button>
+          <button type="submit" id="examSubmitBtn" class="primary-btn exam-btn" data-i18n="btn_addExam">Add Exam</button>
         </form>
       </section>
     </main>
@@ -171,19 +171,19 @@
 
     <nav class="bottom-nav">
       <button class="nav-btn active" data-view="home">
-        <img src="assets/house.svg" alt="" /><span>Home</span>
+        <img src="assets/house.svg" alt="" /><span data-i18n="nav_home">Home</span>
       </button>
       <button class="nav-btn" data-view="calendar">
-        <img src="assets/calendar.svg" alt="" /><span>Calendar</span>
+        <img src="assets/calendar.svg" alt="" /><span data-i18n="nav_calendar">Calendar</span>
       </button>
       <button class="nav-btn" data-view="assignments">
-        <img src="assets/memo.svg" alt="" /><span>Assignments</span>
+        <img src="assets/memo.svg" alt="" /><span data-i18n="nav_assignments">Assignments</span>
       </button>
       <button class="nav-btn" data-view="exams">
-        <img src="assets/books.svg" alt="" /><span>Exams</span>
+        <img src="assets/books.svg" alt="" /><span data-i18n="nav_exams">Exams</span>
       </button>
       <button class="nav-btn" data-view="grades">
-        <img src="assets/hundred.svg" alt="" /><span>Grades</span>
+        <img src="assets/hundred.svg" alt="" /><span data-i18n="nav_grades">Grades</span>
       </button>
     </nav>
   </div>
@@ -192,17 +192,17 @@
   <div id="addChooser" class="modal-overlay" hidden>
     <div class="modal-card">
       <div class="modal-header">
-        <h3 class="detail-title">What do you want to add?</h3>
+        <h3 class="detail-title" data-i18n="chooser_question">What do you want to add?</h3>
         <button id="closeAddChooser" class="icon-btn small" aria-label="Close">&times;</button>
       </div>
       <div class="chooser-options">
         <button id="chooseAssignmentBtn" class="chooser-option assignment-accent">
           <img src="assets/memo.svg" alt="" />
-          <span>Add Assignment</span>
+          <span data-i18n="chooser_addAssignment">Add Assignment</span>
         </button>
         <button id="chooseExamBtn" class="chooser-option exam-accent">
           <img src="assets/books.svg" alt="" />
-          <span>Add Exam</span>
+          <span data-i18n="chooser_addExam">Add Exam</span>
         </button>
       </div>
     </div>
@@ -222,7 +222,7 @@
   <div id="settingsOverlay" class="drawer-overlay" hidden></div>
   <aside id="settingsDrawer" class="settings-drawer" hidden>
     <div class="drawer-header">
-      <h2>Settings</h2>
+      <h2 data-i18n="settings_title">Settings</h2>
       <button id="closeSettings" class="icon-btn small" aria-label="Close">&times;</button>
     </div>
 
@@ -230,23 +230,26 @@
       <div class="avatar">🧑‍🎓</div>
       <div>
         <div id="settingsName" class="account-name">Student</div>
-        <div class="account-sub">Student Account</div>
+        <div class="account-sub" data-i18n="settings_studentAccount">Student Account</div>
       </div>
     </div>
 
-    <div class="settings-section-label">Accent Color</div>
+    <div class="settings-section-label" data-i18n="settings_language">Language</div>
+    <select id="languageSelect" class="language-select"></select>
+
+    <div class="settings-section-label" data-i18n="settings_accentColor">Accent Color</div>
     <div id="accentSwatches" class="accent-swatches"></div>
 
     <div class="settings-stats">
-      <div><span id="statAssignmentsTotal">0</span><small>Assignments</small></div>
-      <div><span id="statExamsTotal">0</span><small>Exams</small></div>
-      <div><span id="statCompletedTotal">0</span><small>Completed</small></div>
+      <div><span id="statAssignmentsTotal">0</span><small data-i18n="stat_assignments">Assignments</small></div>
+      <div><span id="statExamsTotal">0</span><small data-i18n="stat_exams">Exams</small></div>
+      <div><span id="statCompletedTotal">0</span><small data-i18n="stat_completed">Completed</small></div>
     </div>
 
-    <button id="openSecurityBtn" class="primary-btn small secondary-style">Change Name / PIN</button>
-    <button id="clearDataBtn" class="danger-btn">Clear All Data</button>
-    <button id="deleteAccountBtn" class="danger-btn">Delete Account</button>
-    <button id="logOutBtn" class="primary-btn small logout-btn">Switch Account / Log Out</button>
+    <button id="openSecurityBtn" class="primary-btn small secondary-style" data-i18n="settings_changeNamePin">Change Name / PIN</button>
+    <button id="clearDataBtn" class="danger-btn" data-i18n="settings_clearData">Clear All Data</button>
+    <button id="deleteAccountBtn" class="danger-btn" data-i18n="settings_deleteAccount">Delete Account</button>
+    <button id="logOutBtn" class="primary-btn small logout-btn" data-i18n="settings_logout">Switch Account / Log Out</button>
   </aside>
 
   <!-- Security modal: PIN-gated name/PIN change and account deletion -->
@@ -254,6 +257,7 @@
     <div class="modal-card" id="securityCard"></div>
   </div>
 
+  <script src="i18n.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

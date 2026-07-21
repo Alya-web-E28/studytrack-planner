@@ -52,7 +52,7 @@ function validateFullName(raw) {
   const trimmed = raw.trim();
   const parts = trimmed.split(" ");
   if (parts.length !== 2 || !parts[0] || !parts[1]) {
-    return { valid: false, error: "Please enter your first and last name, with a single space between them." };
+    return { valid: false, error: t("error_nameFormat") };
   }
   return { valid: true, trimmed };
 }
@@ -72,9 +72,13 @@ function parseKey(key) {
   return new Date(y, m - 1, d);
 }
 
+function currentLocale() {
+  return getLanguageInfo(getCurrentLanguage()).locale;
+}
+
 function formatPretty(key) {
   const d = parseKey(key);
-  return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  return d.toLocaleDateString(currentLocale(), { weekday: "short", month: "short", day: "numeric" });
 }
 
 function daysUntil(key) {
@@ -87,10 +91,10 @@ function daysUntil(key) {
 
 function dueBadge(key) {
   const diff = daysUntil(key);
-  if (diff < 0) return `${Math.abs(diff)}d overdue`;
-  if (diff === 0) return "Today";
-  if (diff === 1) return "Tomorrow";
-  return `${diff}d left`;
+  if (diff < 0) return t("badge_overdue", { n: Math.abs(diff) });
+  if (diff === 0) return t("badge_today");
+  if (diff === 1) return t("badge_tomorrow");
+  return t("badge_daysLeft", { n: diff });
 }
 
 // ---------- DOM refs ----------
@@ -159,6 +163,7 @@ const openSecurityBtn = document.getElementById("openSecurityBtn");
 const securityModal = document.getElementById("securityModal");
 const securityCard = document.getElementById("securityCard");
 const accentSwatches = document.getElementById("accentSwatches");
+const languageSelect = document.getElementById("languageSelect");
 const logOutBtn = document.getElementById("logOutBtn");
 const statAssignmentsTotal = document.getElementById("statAssignmentsTotal");
 const statExamsTotal = document.getElementById("statExamsTotal");
@@ -196,7 +201,7 @@ function showChoiceStep() {
   authSwitchLink.hidden = true;
   authBackLink.hidden = true;
   hideAuthError();
-  setAuthTexts("Welcome!", "Let's get you organized for the term.");
+  setAuthTexts(t("welcome_title"), t("welcome_subtitle"));
 }
 
 function showNameStep(flow) {
@@ -209,9 +214,9 @@ function showNameStep(flow) {
   hideAuthError();
   authNameInput.value = "";
   if (flow === "create") {
-    setAuthTexts("Create Account", "What's your name?");
+    setAuthTexts(t("welcome_createHeading"), t("welcome_createSub"));
   } else {
-    setAuthTexts("Log In", "Enter your account name.");
+    setAuthTexts(t("welcome_loginHeading"), t("welcome_loginSub"));
   }
   authNameInput.focus();
 }
@@ -248,7 +253,7 @@ function showReturningStep(account) {
   pinBuffer = "";
   updatePinDots();
   hideAuthError();
-  setAuthTexts(`Welcome back, ${account.name}!`, "Enter your PIN to continue.");
+  setAuthTexts(t("welcome_welcomeBack", { name: account.name }), t("welcome_enterPinContinue"));
 }
 
 function buildPinPad() {
@@ -293,24 +298,24 @@ function handlePinComplete() {
     authPendingPin = entered;
     pinBuffer = "";
     authPinPurpose = "confirm";
-    setAuthTexts("Confirm your PIN", "Enter it again to confirm.");
+    setAuthTexts(t("welcome_confirmPin"), t("welcome_confirmPinSub"));
     updatePinDots();
   } else if (authPinPurpose === "confirm") {
     if (entered === authPendingPin) {
       finalizeCreateAccount(authPendingName, entered);
     } else {
-      showAuthError("Those PINs didn't match. Let's try again.");
+      showAuthError(t("error_pinMismatch"));
       pinBuffer = "";
       authPendingPin = "";
       authPinPurpose = "set";
-      setAuthTexts("Choose a 6-digit PIN", "You'll use this to log back in.");
+      setAuthTexts(t("welcome_choosePin"), t("welcome_choosePinSub"));
       updatePinDots();
     }
   } else if (authPinPurpose === "verify" || authPinPurpose === "returning") {
     if (authFoundAccount && authFoundAccount.pin === entered) {
       logIn(authFoundAccount);
     } else {
-      showAuthError("Incorrect PIN. Try again.");
+      showAuthError(t("error_wrongPin"));
       pinBuffer = "";
       updatePinDots();
     }
@@ -332,23 +337,23 @@ authNameContinueBtn.addEventListener("click", () => {
 
   if (authFlow === "create") {
     if (accounts.some((a) => a.nameKey === nameKey)) {
-      showAuthError("That name is already taken. Try logging in instead.");
+      showAuthError(t("error_nameTaken"));
       return;
     }
     authPendingName = trimmed;
     authPinPurpose = "set";
     showPinStep();
-    setAuthTexts("Choose a 6-digit PIN", "You'll use this to log back in.");
+    setAuthTexts(t("welcome_choosePin"), t("welcome_choosePinSub"));
   } else {
     const found = accounts.find((a) => a.nameKey === nameKey);
     if (!found) {
-      showAuthError("No account found with that name.");
+      showAuthError(t("error_nameNotFound"));
       return;
     }
     authFoundAccount = found;
     authPinPurpose = "verify";
     showPinStep();
-    setAuthTexts(`Hi, ${found.name}!`, "Enter your PIN.");
+    setAuthTexts(t("welcome_hiName", { name: found.name }), t("welcome_enterPin"));
   }
 });
 
@@ -427,8 +432,8 @@ function switchView(name) {
 // ---------- Home ----------
 
 function renderHome() {
-  homeGreeting.innerHTML = `Hi, ${escapeHtml(state.name || "Student")}! <img src="assets/wave.svg" class="inline-icon" alt="">`;
-  homeDate.textContent = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  homeGreeting.innerHTML = `${escapeHtml(t("home_greeting", { name: state.name || "Student" }))} <img src="assets/wave.svg" class="inline-icon" alt="">`;
+  homeDate.textContent = new Date().toLocaleDateString(currentLocale(), { weekday: "long", month: "long", day: "numeric" });
 
   const pendingAssignments = state.assignments.filter((a) => !a.completed);
   const pendingExams = state.exams.filter((e) => !e.completed);
@@ -441,7 +446,7 @@ function renderHome() {
   ].sort((a, b) => a.when.localeCompare(b.when)).slice(0, 6);
 
   if (merged.length === 0) {
-    upcomingList.innerHTML = `<div class="item-empty">Nothing due — you're all caught up! 🎉</div>`;
+    upcomingList.innerHTML = `<div class="item-empty">${escapeHtml(t("home_allCaughtUp"))}</div>`;
     return;
   }
 
@@ -495,7 +500,7 @@ function renderAssignments() {
     .slice()
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   if (items.length === 0) {
-    assignmentsList.innerHTML = `<div class="item-empty">No assignments here yet.</div>`;
+    assignmentsList.innerHTML = `<div class="item-empty">${escapeHtml(t("assignments_empty"))}</div>`;
     return;
   }
   assignmentsList.innerHTML = items
@@ -509,7 +514,7 @@ function renderExams() {
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date));
   if (items.length === 0) {
-    examsList.innerHTML = `<div class="item-empty">No exams here yet.</div>`;
+    examsList.innerHTML = `<div class="item-empty">${escapeHtml(t("exams_empty"))}</div>`;
     return;
   }
   examsList.innerHTML = items.map((e) => itemCardHTML({ ...e, type: "exam", when: e.date })).join("");
@@ -522,12 +527,10 @@ function renderGrades() {
     ...state.exams.filter((e) => e.grade).map((e) => ({ ...e, type: "exam", when: e.date })),
   ].sort((a, b) => b.when.localeCompare(a.when));
 
-  gradesCount.textContent = graded.length
-    ? `${graded.length} grade${graded.length === 1 ? "" : "s"} recorded`
-    : "No grades recorded yet.";
+  gradesCount.textContent = graded.length ? t("grades_countRecorded", { count: graded.length }) : t("grades_none");
 
   if (graded.length === 0) {
-    gradesList.innerHTML = `<div class="item-empty">Add a grade from any assignment or exam's detail page — it'll show up here.</div>`;
+    gradesList.innerHTML = `<div class="item-empty">${escapeHtml(t("grades_emptyHint"))}</div>`;
     return;
   }
 
@@ -588,10 +591,14 @@ function deleteItem(type, id) {
 // ---------- Calendar ----------
 
 function renderCalendar() {
+  const isRtl = getLanguageInfo(getCurrentLanguage()).rtl;
+  prevMonthBtn.innerHTML = isRtl ? "&rsaquo;" : "&lsaquo;";
+  nextMonthBtn.innerHTML = isRtl ? "&lsaquo;" : "&rsaquo;";
+
   const cal = state.calendarDate;
   const year = cal.getFullYear();
   const month = cal.getMonth();
-  calendarMonthLabel.textContent = cal.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  calendarMonthLabel.textContent = cal.toLocaleDateString(currentLocale(), { month: "long", year: "numeric" });
 
   const firstDay = new Date(year, month, 1);
   const startWeekday = (firstDay.getDay() + 6) % 7; // Monday = 0 ... Sunday = 6
@@ -654,7 +661,7 @@ function openDayModal(key, items) {
       `
         )
         .join("")
-    : `<div class="item-empty">Nothing due this day.</div>`;
+    : `<div class="item-empty">${escapeHtml(t("calendar_nothingDue"))}</div>`;
 
   dayCard.innerHTML = `
     <div class="detail-header">
@@ -687,16 +694,16 @@ chooseAssignmentBtn.addEventListener("click", () => {
   addChooser.hidden = true;
   state.editing = null;
   assignmentForm.reset();
-  assignmentPageTitle.textContent = "New Assignment";
-  assignmentSubmitBtn.textContent = "Add Assignment";
+  assignmentPageTitle.textContent = t("addAssignment_newTitle");
+  assignmentSubmitBtn.textContent = t("btn_addAssignment");
   switchView("add-assignment");
 });
 chooseExamBtn.addEventListener("click", () => {
   addChooser.hidden = true;
   state.editing = null;
   examForm.reset();
-  examPageTitle.textContent = "New Exam";
-  examSubmitBtn.textContent = "Add Exam";
+  examPageTitle.textContent = t("addExam_newTitle");
+  examSubmitBtn.textContent = t("btn_addExam");
   switchView("add-exam");
 });
 
@@ -720,16 +727,16 @@ function openEditForm(type, id) {
     document.getElementById("aDetails").value = item.details;
     document.getElementById("aDueDate").value = item.dueDate;
     document.getElementById("aTeacher").value = item.teacher;
-    assignmentPageTitle.textContent = "Edit Assignment";
-    assignmentSubmitBtn.textContent = "Save Changes";
+    assignmentPageTitle.textContent = t("addAssignment_editTitle");
+    assignmentSubmitBtn.textContent = t("btn_saveChanges");
     switchView("add-assignment");
   } else {
     document.getElementById("eName").value = item.name;
     document.getElementById("eDetails").value = item.details;
     document.getElementById("eDate").value = item.date;
     document.getElementById("eTeacher").value = item.teacher;
-    examPageTitle.textContent = "Edit Exam";
-    examSubmitBtn.textContent = "Save Changes";
+    examPageTitle.textContent = t("addExam_editTitle");
+    examSubmitBtn.textContent = t("btn_saveChanges");
     switchView("add-exam");
   }
 }
@@ -787,36 +794,40 @@ function openDetail(type, id) {
   const item = list.find((i) => i.id === id);
   if (!item) return;
   const when = type === "exam" ? item.date : item.dueDate;
-  const typeLabel = type === "exam" ? "Exam" : "Assignment";
+  const typeLabel = type === "exam" ? t("type_exam") : t("type_assignment");
 
   renderDetailCard(type, item, when, typeLabel);
   detailModal.hidden = false;
 }
 
 function renderDetailCard(type, item, when, typeLabel) {
+  const editLabel = type === "exam" ? t("detail_editExam") : t("detail_editAssignment");
+  const deleteLabel = type === "exam" ? t("detail_deleteExam") : t("detail_deleteAssignment");
+  const deleteConfirmLabel = type === "exam" ? t("detail_deleteConfirmExam") : t("detail_deleteConfirmAssignment");
+
   detailCard.innerHTML = `
     <div class="detail-header">
       <h3 class="detail-title">${escapeHtml(item.name)}</h3>
       <span class="detail-badge ${type === "exam" ? "exam-type" : ""} ${item.completed ? "completed-type" : ""}">
-        ${item.completed ? "Completed" : typeLabel}
+        ${item.completed ? escapeHtml(t("badge_completed")) : escapeHtml(typeLabel)}
       </span>
     </div>
     <div class="detail-meta">👩‍🏫 ${escapeHtml(item.teacher) || "—"}</div>
-    <div class="detail-meta">📅 ${formatPretty(when)} · ${dueBadge(when)}</div>
-    <div class="detail-details">${escapeHtml(item.details) || "No additional details."}</div>
+    <div class="detail-meta">📅 ${formatPretty(when)} · ${escapeHtml(dueBadge(when))}</div>
+    <div class="detail-details">${escapeHtml(item.details) || escapeHtml(t("detail_noDetails"))}</div>
     <div class="detail-grade">
-      <label for="detailGradeInput">Grade <span class="optional-tag">(optional)</span></label>
+      <label for="detailGradeInput">${escapeHtml(t("detail_grade"))} <span class="optional-tag">${escapeHtml(t("detail_optional"))}</span></label>
       <div class="grade-input-row">
-        <input id="detailGradeInput" placeholder="e.g. A, 92%, 18/20" value="${escapeHtml(item.grade || "")}" />
-        <button id="detailGradeSaveBtn" class="primary-btn small secondary-style">Save</button>
+        <input id="detailGradeInput" placeholder="${escapeHtml(t("detail_gradePlaceholder"))}" value="${escapeHtml(item.grade || "")}" />
+        <button id="detailGradeSaveBtn" class="primary-btn small secondary-style">${escapeHtml(t("detail_save"))}</button>
       </div>
     </div>
     <div class="detail-actions">
-      <button id="detailEditBtn" class="primary-btn small secondary-style">Edit ${typeLabel}</button>
+      <button id="detailEditBtn" class="primary-btn small secondary-style">${escapeHtml(editLabel)}</button>
       <button id="detailCompleteBtn" class="${item.completed ? "primary-btn small" : "success-btn"}">
-        ${item.completed ? "Mark Incomplete" : "Mark Complete"}
+        ${item.completed ? escapeHtml(t("detail_markIncomplete")) : escapeHtml(t("detail_markComplete"))}
       </button>
-      <button id="detailDeleteBtn" class="danger-btn">Delete ${typeLabel}</button>
+      <button id="detailDeleteBtn" class="danger-btn">${escapeHtml(deleteLabel)}</button>
       <div id="detailConfirmSlot"></div>
     </div>
   `;
@@ -832,7 +843,7 @@ function renderDetailCard(type, item, when, typeLabel) {
     renderAll();
     const btn = document.getElementById("detailGradeSaveBtn");
     const original = btn.textContent;
-    btn.textContent = "Saved!";
+    btn.textContent = t("detail_saved");
     setTimeout(() => {
       if (document.body.contains(btn)) btn.textContent = original;
     }, 1200);
@@ -847,9 +858,9 @@ function renderDetailCard(type, item, when, typeLabel) {
     const slot = document.getElementById("detailConfirmSlot");
     slot.innerHTML = `
       <div class="confirm-row">
-        <span>Delete this ${typeLabel.toLowerCase()} for good?</span>
-        <button class="confirm-yes" id="confirmDeleteYes">Yes</button>
-        <button class="confirm-no" id="confirmDeleteNo">No</button>
+        <span>${escapeHtml(deleteConfirmLabel)}</span>
+        <button class="confirm-yes" id="confirmDeleteYes">${escapeHtml(t("common_yes"))}</button>
+        <button class="confirm-no" id="confirmDeleteNo">${escapeHtml(t("common_no"))}</button>
       </div>
     `;
     document.getElementById("confirmDeleteYes").addEventListener("click", () => {
@@ -902,9 +913,9 @@ clearDataBtn.addEventListener("click", () => {
   row.className = "confirm-row";
   row.style.marginTop = "10px";
   row.innerHTML = `
-    <span>Erase all assignments &amp; exams?</span>
-    <button class="confirm-yes" id="clearYes">Yes</button>
-    <button class="confirm-no" id="clearNo">No</button>
+    <span>${escapeHtml(t("settings_clearConfirm"))}</span>
+    <button class="confirm-yes" id="clearYes">${escapeHtml(t("common_yes"))}</button>
+    <button class="confirm-no" id="clearNo">${escapeHtml(t("common_no"))}</button>
   `;
   clearDataBtn.insertAdjacentElement("afterend", row);
   document.getElementById("clearYes").addEventListener("click", () => {
@@ -992,10 +1003,10 @@ function closeSecurityModal() {
 function renderSecurityVerifyStep(purpose) {
   securityCard.innerHTML = `
     <div class="detail-header">
-      <h3 class="detail-title">Enter Current PIN</h3>
+      <h3 class="detail-title">${escapeHtml(t("security_enterCurrentPin"))}</h3>
       <button class="icon-btn small" id="closeSecurityModal">&times;</button>
     </div>
-    <p class="auth-sub">Confirm it's really you before making changes.</p>
+    <p class="auth-sub">${escapeHtml(t("security_confirmIdentity"))}</p>
     <div id="securityError" class="auth-error" hidden></div>
     <div id="securityPinDotsWrap"></div>
     <div id="securityPinPadWrap"></div>
@@ -1018,7 +1029,7 @@ function renderSecurityVerifyStep(purpose) {
           else renderSecurityDeleteStep();
         } else {
           const errEl = document.getElementById("securityError");
-          errEl.textContent = "Incorrect PIN. Try again.";
+          errEl.textContent = t("error_wrongPin");
           errEl.hidden = false;
           securityBuffer = "";
           renderPinDotsInto(dots, 0);
@@ -1036,17 +1047,17 @@ function renderSecurityVerifyStep(purpose) {
 function renderSecurityChangeInfoStep() {
   securityCard.innerHTML = `
     <div class="detail-header">
-      <h3 class="detail-title">Change Name / PIN</h3>
+      <h3 class="detail-title">${escapeHtml(t("security_changeTitle"))}</h3>
       <button class="icon-btn small" id="closeSecurityModal">&times;</button>
     </div>
     <div id="securityError" class="auth-error" hidden></div>
-    <label class="settings-field">Name
+    <label class="settings-field">${escapeHtml(t("security_nameLabel"))}
       <input id="securityNameInput" value="${escapeHtml(state.name)}" />
     </label>
-    <button id="securitySaveNameBtn" class="primary-btn small">Save Name</button>
+    <button id="securitySaveNameBtn" class="primary-btn small">${escapeHtml(t("security_saveName"))}</button>
     <div class="security-divider"></div>
     <div id="securityPinChangeArea">
-      <button id="startChangePinBtn" class="primary-btn small secondary-style">Change PIN</button>
+      <button id="startChangePinBtn" class="primary-btn small secondary-style">${escapeHtml(t("security_changePin"))}</button>
     </div>
   `;
   document.getElementById("closeSecurityModal").addEventListener("click", closeSecurityModal);
@@ -1065,7 +1076,7 @@ function renderSecurityChangeInfoStep() {
     const taken = accounts.some((a) => a.id !== state.accountId && a.nameKey === nameKey);
     if (taken) {
       errEl.className = "auth-error";
-      errEl.textContent = "That name is already taken by another account.";
+      errEl.textContent = t("security_nameTakenOther");
       errEl.hidden = false;
       return;
     }
@@ -1078,7 +1089,7 @@ function renderSecurityChangeInfoStep() {
     settingsName.textContent = state.name;
 
     errEl.className = "auth-success";
-    errEl.textContent = "Name updated!";
+    errEl.textContent = t("security_nameUpdated");
     errEl.hidden = false;
   });
 
@@ -1091,7 +1102,7 @@ function renderSecurityChangePinArea() {
   securityNewPinPurpose = "set";
   const area = document.getElementById("securityPinChangeArea");
   area.innerHTML = `
-    <p class="auth-sub" id="securityPinPrompt">Choose a new 6-digit PIN</p>
+    <p class="auth-sub" id="securityPinPrompt">${escapeHtml(t("security_chooseNewPin"))}</p>
     <div id="securityNewPinDotsWrap"></div>
     <div id="securityNewPinPadWrap"></div>
   `;
@@ -1108,7 +1119,7 @@ function renderSecurityChangePinArea() {
           securityPendingNewPin = securityNewPinBuffer;
           securityNewPinBuffer = "";
           securityNewPinPurpose = "confirm";
-          document.getElementById("securityPinPrompt").textContent = "Confirm your new PIN";
+          document.getElementById("securityPinPrompt").textContent = t("security_confirmNewPin");
           renderPinDotsInto(dots, 0);
         } else {
           if (securityNewPinBuffer === securityPendingNewPin) {
@@ -1116,10 +1127,9 @@ function renderSecurityChangePinArea() {
             const acc = accounts.find((a) => a.id === state.accountId);
             acc.pin = securityNewPinBuffer;
             saveAccounts(accounts);
-            area.innerHTML = `<p class="auth-success">PIN updated!</p>`;
+            area.innerHTML = `<p class="auth-success">${escapeHtml(t("security_pinUpdated"))}</p>`;
           } else {
-            document.getElementById("securityPinPrompt").textContent =
-              "Those didn't match. Choose a new 6-digit PIN";
+            document.getElementById("securityPinPrompt").textContent = t("security_pinMismatchRetry");
             securityNewPinPurpose = "set";
             securityPendingNewPin = "";
             securityNewPinBuffer = "";
@@ -1139,11 +1149,11 @@ function renderSecurityChangePinArea() {
 function renderSecurityDeleteStep() {
   securityCard.innerHTML = `
     <div class="detail-header">
-      <h3 class="detail-title">Delete Account</h3>
+      <h3 class="detail-title">${escapeHtml(t("security_deleteTitle"))}</h3>
       <button class="icon-btn small" id="closeSecurityModal">&times;</button>
     </div>
-    <p class="auth-sub">This permanently deletes your account, including all assignments, exams, and grades. This can't be undone.</p>
-    <button id="confirmDeleteAccountBtn" class="danger-btn">Delete Forever</button>
+    <p class="auth-sub">${escapeHtml(t("security_deleteWarning"))}</p>
+    <button id="confirmDeleteAccountBtn" class="danger-btn">${escapeHtml(t("security_deleteForever"))}</button>
     <div id="securityConfirmSlot"></div>
   `;
   document.getElementById("closeSecurityModal").addEventListener("click", closeSecurityModal);
@@ -1152,9 +1162,9 @@ function renderSecurityDeleteStep() {
     const slot = document.getElementById("securityConfirmSlot");
     slot.innerHTML = `
       <div class="confirm-row" style="margin-top:12px;">
-        <span>Are you absolutely sure?</span>
-        <button class="confirm-yes" id="finalDeleteYes">Yes, delete</button>
-        <button class="confirm-no" id="finalDeleteNo">No</button>
+        <span>${escapeHtml(t("security_areYouSure"))}</span>
+        <button class="confirm-yes" id="finalDeleteYes">${escapeHtml(t("security_yesDelete"))}</button>
+        <button class="confirm-no" id="finalDeleteNo">${escapeHtml(t("common_no"))}</button>
       </div>
     `;
     document.getElementById("finalDeleteYes").addEventListener("click", () => {
@@ -1227,6 +1237,37 @@ function renderAccentSwatches() {
 applyAccentColor(loadAccentColor());
 renderAccentSwatches();
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => applyAccentColor(loadAccentColor()));
+
+// ---------- Language ----------
+
+function renderLanguageOptions() {
+  languageSelect.innerHTML = LANGUAGES.map(
+    (l) => `<option value="${l.code}" ${l.code === getCurrentLanguage() ? "selected" : ""}>${l.label}</option>`
+  ).join("");
+}
+
+function updateDirectionalArrows() {
+  const isRtl = getLanguageInfo(getCurrentLanguage()).rtl;
+  const backArrow = isRtl ? "&rarr;" : "&larr;";
+  backFromAssignment.innerHTML = backArrow;
+  backFromExam.innerHTML = backArrow;
+}
+
+function refreshAfterLanguageChange() {
+  applyTranslations();
+  updateDirectionalArrows();
+  renderAll();
+  if (!authError.hidden) authError.hidden = true;
+}
+
+languageSelect.addEventListener("change", () => {
+  setLanguage(languageSelect.value);
+  refreshAfterLanguageChange();
+});
+
+setLanguage(getCurrentLanguage());
+renderLanguageOptions();
+updateDirectionalArrows();
 
 // ---------- Init ----------
 

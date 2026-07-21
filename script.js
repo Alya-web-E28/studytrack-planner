@@ -47,6 +47,16 @@ function saveAccountData() {
   );
 }
 
+// Requires exactly "First Last" - two non-empty parts separated by exactly one space.
+function validateFullName(raw) {
+  const trimmed = raw.trim();
+  const parts = trimmed.split(" ");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    return { valid: false, error: "Please enter your first and last name, with a single space between them." };
+  }
+  return { valid: true, trimmed };
+}
+
 // ---------- Date helpers ----------
 
 function todayKey() {
@@ -116,6 +126,8 @@ const nextMonthBtn = document.getElementById("nextMonth");
 
 const assignmentsList = document.getElementById("assignmentsList");
 const examsList = document.getElementById("examsList");
+const gradesList = document.getElementById("gradesList");
+const gradesCount = document.getElementById("gradesCount");
 
 const addFab = document.getElementById("addFab");
 const addChooser = document.getElementById("addChooser");
@@ -141,9 +153,12 @@ const settingsOverlay = document.getElementById("settingsOverlay");
 const settingsDrawer = document.getElementById("settingsDrawer");
 const closeSettings = document.getElementById("closeSettings");
 const settingsName = document.getElementById("settingsName");
-const settingsNameInput = document.getElementById("settingsNameInput");
-const saveNameBtn = document.getElementById("saveNameBtn");
 const clearDataBtn = document.getElementById("clearDataBtn");
+const deleteAccountBtn = document.getElementById("deleteAccountBtn");
+const openSecurityBtn = document.getElementById("openSecurityBtn");
+const securityModal = document.getElementById("securityModal");
+const securityCard = document.getElementById("securityCard");
+const accentSwatches = document.getElementById("accentSwatches");
 const logOutBtn = document.getElementById("logOutBtn");
 const statAssignmentsTotal = document.getElementById("statAssignmentsTotal");
 const statExamsTotal = document.getElementById("statExamsTotal");
@@ -306,11 +321,12 @@ showCreateBtn.addEventListener("click", () => showNameStep("create"));
 showLoginBtn.addEventListener("click", () => showNameStep("login"));
 
 authNameContinueBtn.addEventListener("click", () => {
-  const trimmed = authNameInput.value.trim();
-  if (trimmed.length < 2) {
-    showAuthError("Name must be at least 2 characters.");
+  const check = validateFullName(authNameInput.value);
+  if (!check.valid) {
+    showAuthError(check.error);
     return;
   }
+  const trimmed = check.trimmed;
   const nameKey = trimmed.toLowerCase();
   const accounts = loadAccounts();
 
@@ -395,7 +411,7 @@ function initAuth() {
 
 // ---------- Navigation ----------
 
-const MAIN_VIEWS = ["home", "calendar", "assignments", "exams"];
+const MAIN_VIEWS = ["home", "calendar", "assignments", "exams", "grades"];
 
 document.querySelectorAll(".nav-btn").forEach((btn) => {
   btn.addEventListener("click", () => switchView(btn.dataset.view));
@@ -498,6 +514,40 @@ function renderExams() {
   }
   examsList.innerHTML = items.map((e) => itemCardHTML({ ...e, type: "exam", when: e.date })).join("");
   wireItemCards(examsList);
+}
+
+function renderGrades() {
+  const graded = [
+    ...state.assignments.filter((a) => a.grade).map((a) => ({ ...a, type: "assignment", when: a.dueDate })),
+    ...state.exams.filter((e) => e.grade).map((e) => ({ ...e, type: "exam", when: e.date })),
+  ].sort((a, b) => b.when.localeCompare(a.when));
+
+  gradesCount.textContent = graded.length
+    ? `${graded.length} grade${graded.length === 1 ? "" : "s"} recorded`
+    : "No grades recorded yet.";
+
+  if (graded.length === 0) {
+    gradesList.innerHTML = `<div class="item-empty">Add a grade from any assignment or exam's detail page — it'll show up here.</div>`;
+    return;
+  }
+
+  gradesList.innerHTML = graded
+    .map(
+      (item) => `
+    <div class="grade-card ${item.type === "exam" ? "exam-type" : ""}" data-type="${item.type}" data-id="${item.id}">
+      <div class="item-info">
+        <div class="item-name">${escapeHtml(item.name)}</div>
+        <div class="item-meta">${escapeHtml(item.teacher)} · ${formatPretty(item.when)}</div>
+      </div>
+      <div class="grade-value">${escapeHtml(item.grade)}</div>
+    </div>
+  `
+    )
+    .join("");
+
+  gradesList.querySelectorAll(".grade-card").forEach((card) => {
+    card.addEventListener("click", () => openDetail(card.dataset.type, card.dataset.id));
+  });
 }
 
 document.getElementById("assignmentFilters").addEventListener("click", (e) => {
@@ -697,7 +747,7 @@ assignmentForm.addEventListener("submit", (e) => {
     const item = state.assignments.find((i) => i.id === state.editing.id);
     Object.assign(item, values);
   } else {
-    state.assignments.push({ id: uid(), ...values, completed: false });
+    state.assignments.push({ id: uid(), ...values, completed: false, grade: "" });
   }
 
   state.editing = null;
@@ -720,7 +770,7 @@ examForm.addEventListener("submit", (e) => {
     const item = state.exams.find((i) => i.id === state.editing.id);
     Object.assign(item, values);
   } else {
-    state.exams.push({ id: uid(), ...values, completed: false });
+    state.exams.push({ id: uid(), ...values, completed: false, grade: "" });
   }
 
   state.editing = null;
@@ -754,6 +804,13 @@ function renderDetailCard(type, item, when, typeLabel) {
     <div class="detail-meta">👩‍🏫 ${escapeHtml(item.teacher) || "—"}</div>
     <div class="detail-meta">📅 ${formatPretty(when)} · ${dueBadge(when)}</div>
     <div class="detail-details">${escapeHtml(item.details) || "No additional details."}</div>
+    <div class="detail-grade">
+      <label for="detailGradeInput">Grade <span class="optional-tag">(optional)</span></label>
+      <div class="grade-input-row">
+        <input id="detailGradeInput" placeholder="e.g. A, 92%, 18/20" value="${escapeHtml(item.grade || "")}" />
+        <button id="detailGradeSaveBtn" class="primary-btn small secondary-style">Save</button>
+      </div>
+    </div>
     <div class="detail-actions">
       <button id="detailEditBtn" class="primary-btn small secondary-style">Edit ${typeLabel}</button>
       <button id="detailCompleteBtn" class="${item.completed ? "primary-btn small" : "success-btn"}">
@@ -767,6 +824,18 @@ function renderDetailCard(type, item, when, typeLabel) {
   document.getElementById("detailEditBtn").addEventListener("click", () => {
     detailModal.hidden = true;
     openEditForm(type, item.id);
+  });
+
+  document.getElementById("detailGradeSaveBtn").addEventListener("click", () => {
+    item.grade = document.getElementById("detailGradeInput").value.trim();
+    saveAccountData();
+    renderAll();
+    const btn = document.getElementById("detailGradeSaveBtn");
+    const original = btn.textContent;
+    btn.textContent = "Saved!";
+    setTimeout(() => {
+      if (document.body.contains(btn)) btn.textContent = original;
+    }, 1200);
   });
 
   document.getElementById("detailCompleteBtn").addEventListener("click", () => {
@@ -804,7 +873,6 @@ dayModal.addEventListener("click", (e) => {
 
 settingsBtn.addEventListener("click", () => {
   settingsName.textContent = state.name || "Student";
-  settingsNameInput.value = state.name || "";
   statAssignmentsTotal.textContent = state.assignments.length;
   statExamsTotal.textContent = state.exams.length;
   statCompletedTotal.textContent =
@@ -825,25 +893,6 @@ function closeSettingsDrawer() {
 
 closeSettings.addEventListener("click", closeSettingsDrawer);
 settingsOverlay.addEventListener("click", closeSettingsDrawer);
-
-saveNameBtn.addEventListener("click", () => {
-  const val = settingsNameInput.value.trim();
-  if (val.length < 2) return;
-  const nameKey = val.toLowerCase();
-  const accounts = loadAccounts();
-  const taken = accounts.some((a) => a.id !== state.accountId && a.nameKey === nameKey);
-  if (taken) return;
-
-  const acc = accounts.find((a) => a.id === state.accountId);
-  if (acc) {
-    acc.name = val;
-    acc.nameKey = nameKey;
-    saveAccounts(accounts);
-  }
-  state.name = val;
-  renderHome();
-  settingsName.textContent = state.name;
-});
 
 clearDataBtn.addEventListener("click", () => {
   const existing = document.getElementById("clearConfirmRow");
@@ -876,6 +925,309 @@ logOutBtn.addEventListener("click", () => {
   initAuth();
 });
 
+// ---------- Reusable PIN pad (used by the security modal) ----------
+
+function createPinPadEl(onDigit, onBackspace) {
+  const pad = document.createElement("div");
+  pad.className = "pinpad";
+  const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "back"];
+  keys.forEach((k) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    if (k === "back") {
+      btn.className = "pin-key pin-key-back";
+      btn.innerHTML = "&larr;";
+      btn.addEventListener("click", onBackspace);
+    } else if (k === "") {
+      btn.className = "pin-key pin-key-empty";
+      btn.disabled = true;
+      btn.tabIndex = -1;
+    } else {
+      btn.className = "pin-key";
+      btn.textContent = k;
+      btn.addEventListener("click", () => onDigit(k));
+    }
+    pad.appendChild(btn);
+  });
+  return pad;
+}
+
+function createPinDotsEl() {
+  const dots = document.createElement("div");
+  dots.className = "pin-dots";
+  renderPinDotsInto(dots, 0);
+  return dots;
+}
+
+function renderPinDotsInto(dotsEl, count) {
+  dotsEl.innerHTML = "";
+  for (let i = 0; i < 6; i++) {
+    const d = document.createElement("span");
+    d.className = "pin-dot" + (i < count ? " filled" : "");
+    dotsEl.appendChild(d);
+  }
+}
+
+// ---------- Security modal: verify PIN, then change name/PIN or delete account ----------
+
+let securityBuffer = "";
+let securityNewPinBuffer = "";
+let securityPendingNewPin = "";
+let securityNewPinPurpose = null;
+
+function currentAccount() {
+  return loadAccounts().find((a) => a.id === state.accountId);
+}
+
+function openSecurityModal(purpose) {
+  securityBuffer = "";
+  renderSecurityVerifyStep(purpose);
+  securityModal.hidden = false;
+}
+
+function closeSecurityModal() {
+  securityModal.hidden = true;
+}
+
+function renderSecurityVerifyStep(purpose) {
+  securityCard.innerHTML = `
+    <div class="detail-header">
+      <h3 class="detail-title">Enter Current PIN</h3>
+      <button class="icon-btn small" id="closeSecurityModal">&times;</button>
+    </div>
+    <p class="auth-sub">Confirm it's really you before making changes.</p>
+    <div id="securityError" class="auth-error" hidden></div>
+    <div id="securityPinDotsWrap"></div>
+    <div id="securityPinPadWrap"></div>
+  `;
+  document.getElementById("closeSecurityModal").addEventListener("click", closeSecurityModal);
+
+  const dots = createPinDotsEl();
+  document.getElementById("securityPinDotsWrap").appendChild(dots);
+
+  const pad = createPinPadEl(
+    (d) => {
+      if (securityBuffer.length >= 6) return;
+      securityBuffer += d;
+      renderPinDotsInto(dots, securityBuffer.length);
+      document.getElementById("securityError").hidden = true;
+      if (securityBuffer.length === 6) {
+        const account = currentAccount();
+        if (account && account.pin === securityBuffer) {
+          if (purpose === "changeInfo") renderSecurityChangeInfoStep();
+          else renderSecurityDeleteStep();
+        } else {
+          const errEl = document.getElementById("securityError");
+          errEl.textContent = "Incorrect PIN. Try again.";
+          errEl.hidden = false;
+          securityBuffer = "";
+          renderPinDotsInto(dots, 0);
+        }
+      }
+    },
+    () => {
+      securityBuffer = securityBuffer.slice(0, -1);
+      renderPinDotsInto(dots, securityBuffer.length);
+    }
+  );
+  document.getElementById("securityPinPadWrap").appendChild(pad);
+}
+
+function renderSecurityChangeInfoStep() {
+  securityCard.innerHTML = `
+    <div class="detail-header">
+      <h3 class="detail-title">Change Name / PIN</h3>
+      <button class="icon-btn small" id="closeSecurityModal">&times;</button>
+    </div>
+    <div id="securityError" class="auth-error" hidden></div>
+    <label class="settings-field">Name
+      <input id="securityNameInput" value="${escapeHtml(state.name)}" />
+    </label>
+    <button id="securitySaveNameBtn" class="primary-btn small">Save Name</button>
+    <div class="security-divider"></div>
+    <div id="securityPinChangeArea">
+      <button id="startChangePinBtn" class="primary-btn small secondary-style">Change PIN</button>
+    </div>
+  `;
+  document.getElementById("closeSecurityModal").addEventListener("click", closeSecurityModal);
+
+  document.getElementById("securitySaveNameBtn").addEventListener("click", () => {
+    const errEl = document.getElementById("securityError");
+    const check = validateFullName(document.getElementById("securityNameInput").value);
+    if (!check.valid) {
+      errEl.className = "auth-error";
+      errEl.textContent = check.error;
+      errEl.hidden = false;
+      return;
+    }
+    const nameKey = check.trimmed.toLowerCase();
+    const accounts = loadAccounts();
+    const taken = accounts.some((a) => a.id !== state.accountId && a.nameKey === nameKey);
+    if (taken) {
+      errEl.className = "auth-error";
+      errEl.textContent = "That name is already taken by another account.";
+      errEl.hidden = false;
+      return;
+    }
+    const acc = accounts.find((a) => a.id === state.accountId);
+    acc.name = check.trimmed;
+    acc.nameKey = nameKey;
+    saveAccounts(accounts);
+    state.name = check.trimmed;
+    renderHome();
+    settingsName.textContent = state.name;
+
+    errEl.className = "auth-success";
+    errEl.textContent = "Name updated!";
+    errEl.hidden = false;
+  });
+
+  document.getElementById("startChangePinBtn").addEventListener("click", renderSecurityChangePinArea);
+}
+
+function renderSecurityChangePinArea() {
+  securityNewPinBuffer = "";
+  securityPendingNewPin = "";
+  securityNewPinPurpose = "set";
+  const area = document.getElementById("securityPinChangeArea");
+  area.innerHTML = `
+    <p class="auth-sub" id="securityPinPrompt">Choose a new 6-digit PIN</p>
+    <div id="securityNewPinDotsWrap"></div>
+    <div id="securityNewPinPadWrap"></div>
+  `;
+  const dots = createPinDotsEl();
+  document.getElementById("securityNewPinDotsWrap").appendChild(dots);
+
+  const pad = createPinPadEl(
+    (d) => {
+      if (securityNewPinBuffer.length >= 6) return;
+      securityNewPinBuffer += d;
+      renderPinDotsInto(dots, securityNewPinBuffer.length);
+      if (securityNewPinBuffer.length === 6) {
+        if (securityNewPinPurpose === "set") {
+          securityPendingNewPin = securityNewPinBuffer;
+          securityNewPinBuffer = "";
+          securityNewPinPurpose = "confirm";
+          document.getElementById("securityPinPrompt").textContent = "Confirm your new PIN";
+          renderPinDotsInto(dots, 0);
+        } else {
+          if (securityNewPinBuffer === securityPendingNewPin) {
+            const accounts = loadAccounts();
+            const acc = accounts.find((a) => a.id === state.accountId);
+            acc.pin = securityNewPinBuffer;
+            saveAccounts(accounts);
+            area.innerHTML = `<p class="auth-success">PIN updated!</p>`;
+          } else {
+            document.getElementById("securityPinPrompt").textContent =
+              "Those didn't match. Choose a new 6-digit PIN";
+            securityNewPinPurpose = "set";
+            securityPendingNewPin = "";
+            securityNewPinBuffer = "";
+            renderPinDotsInto(dots, 0);
+          }
+        }
+      }
+    },
+    () => {
+      securityNewPinBuffer = securityNewPinBuffer.slice(0, -1);
+      renderPinDotsInto(dots, securityNewPinBuffer.length);
+    }
+  );
+  document.getElementById("securityNewPinPadWrap").appendChild(pad);
+}
+
+function renderSecurityDeleteStep() {
+  securityCard.innerHTML = `
+    <div class="detail-header">
+      <h3 class="detail-title">Delete Account</h3>
+      <button class="icon-btn small" id="closeSecurityModal">&times;</button>
+    </div>
+    <p class="auth-sub">This permanently deletes your account, including all assignments, exams, and grades. This can't be undone.</p>
+    <button id="confirmDeleteAccountBtn" class="danger-btn">Delete Forever</button>
+    <div id="securityConfirmSlot"></div>
+  `;
+  document.getElementById("closeSecurityModal").addEventListener("click", closeSecurityModal);
+
+  document.getElementById("confirmDeleteAccountBtn").addEventListener("click", () => {
+    const slot = document.getElementById("securityConfirmSlot");
+    slot.innerHTML = `
+      <div class="confirm-row" style="margin-top:12px;">
+        <span>Are you absolutely sure?</span>
+        <button class="confirm-yes" id="finalDeleteYes">Yes, delete</button>
+        <button class="confirm-no" id="finalDeleteNo">No</button>
+      </div>
+    `;
+    document.getElementById("finalDeleteYes").addEventListener("click", () => {
+      const accounts = loadAccounts().filter((a) => a.id !== state.accountId);
+      saveAccounts(accounts);
+      localStorage.removeItem(accountDataKey(state.accountId));
+      localStorage.removeItem(STORAGE_KEYS.lastAccountId);
+      closeSecurityModal();
+      closeSettingsDrawer();
+      showWelcomeScreen();
+      initAuth();
+    });
+    document.getElementById("finalDeleteNo").addEventListener("click", () => (slot.innerHTML = ""));
+  });
+}
+
+openSecurityBtn.addEventListener("click", () => openSecurityModal("changeInfo"));
+deleteAccountBtn.addEventListener("click", () => openSecurityModal("deleteAccount"));
+securityModal.addEventListener("click", (e) => {
+  if (e.target === securityModal) closeSecurityModal();
+});
+
+// ---------- Accent color ----------
+
+const ACCENT_PALETTE = {
+  red: { light: ["#e0393f", "#c22a30"], dark: ["#ff6b6b", "#e35353"] },
+  pink: { light: ["#ec4899", "#d6336c"], dark: ["#f472b6", "#ec4899"] },
+  purple: { light: ["#8b5cf6", "#7c3aed"], dark: ["#a78bfa", "#8b5cf6"] },
+  indigo: { light: ["#6366f1", "#4f46e5"], dark: ["#818cf8", "#6366f1"] },
+  teal: { light: ["#0d9488", "#0f766e"], dark: ["#2dd4bf", "#14b8a6"] },
+  gold: { light: ["#ca8a04", "#a16207"], dark: ["#facc15", "#eab308"] },
+};
+const ACCENT_STORAGE_KEY = "sp_accentColor";
+
+function applyAccentColor(colorId) {
+  const palette = ACCENT_PALETTE[colorId] || ACCENT_PALETTE.red;
+  const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const [main, pressed] = isDark ? palette.dark : palette.light;
+  document.documentElement.style.setProperty("--primary", main);
+  document.documentElement.style.setProperty("--primary-dark", pressed);
+}
+
+function loadAccentColor() {
+  return localStorage.getItem(ACCENT_STORAGE_KEY) || "red";
+}
+
+function saveAccentColorChoice(colorId) {
+  localStorage.setItem(ACCENT_STORAGE_KEY, colorId);
+}
+
+function renderAccentSwatches() {
+  const current = loadAccentColor();
+  accentSwatches.innerHTML = "";
+  Object.keys(ACCENT_PALETTE).forEach((colorId) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "swatch" + (colorId === current ? " selected" : "");
+    btn.style.background = ACCENT_PALETTE[colorId].light[0];
+    btn.setAttribute("aria-label", colorId);
+    btn.addEventListener("click", () => {
+      saveAccentColorChoice(colorId);
+      applyAccentColor(colorId);
+      accentSwatches.querySelectorAll(".swatch").forEach((s) => s.classList.remove("selected"));
+      btn.classList.add("selected");
+    });
+    accentSwatches.appendChild(btn);
+  });
+}
+
+applyAccentColor(loadAccentColor());
+renderAccentSwatches();
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => applyAccentColor(loadAccentColor()));
+
 // ---------- Init ----------
 
 function renderAll() {
@@ -883,6 +1235,7 @@ function renderAll() {
   renderCalendar();
   renderAssignments();
   renderExams();
+  renderGrades();
 }
 
 initAuth();

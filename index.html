@@ -26,7 +26,7 @@
       </div>
 
       <div id="authNameWrap" class="auth-step" hidden>
-        <input id="authNameInput" class="auth-name-input" placeholder="Your name" autocomplete="off" maxlength="30" />
+        <input id="authNameInput" class="auth-name-input" placeholder="First Last" autocomplete="off" maxlength="60" />
         <button id="authNameContinueBtn" class="primary-btn">Continue</button>
       </div>
 
@@ -114,6 +114,12 @@
         <div id="examsList" class="item-list checklist"></div>
       </section>
 
+      <section id="view-grades" class="view">
+        <h2 class="view-title"><img src="assets/hundred.svg" class="inline-icon" alt="">Grades</h2>
+        <p class="view-sub" id="gradesCount">No grades recorded yet.</p>
+        <div id="gradesList" class="item-list"></div>
+      </section>
+
       <section id="view-add-assignment" class="view">
         <div class="page-header">
           <button id="backFromAssignment" class="icon-btn small">&larr;</button>
@@ -176,6 +182,9 @@
       <button class="nav-btn" data-view="exams">
         <img src="assets/books.svg" alt="" /><span>Exams</span>
       </button>
+      <button class="nav-btn" data-view="grades">
+        <img src="assets/hundred.svg" alt="" /><span>Grades</span>
+      </button>
     </nav>
   </div>
 
@@ -225,11 +234,8 @@
       </div>
     </div>
 
-    <label class="settings-field">
-      Display name
-      <input id="settingsNameInput" />
-    </label>
-    <button id="saveNameBtn" class="primary-btn small">Save Name</button>
+    <div class="settings-section-label">Accent Color</div>
+    <div id="accentSwatches" class="accent-swatches"></div>
 
     <div class="settings-stats">
       <div><span id="statAssignmentsTotal">0</span><small>Assignments</small></div>
@@ -237,9 +243,16 @@
       <div><span id="statCompletedTotal">0</span><small>Completed</small></div>
     </div>
 
+    <button id="openSecurityBtn" class="primary-btn small secondary-style">Change Name / PIN</button>
     <button id="clearDataBtn" class="danger-btn">Clear All Data</button>
+    <button id="deleteAccountBtn" class="danger-btn">Delete Account</button>
     <button id="logOutBtn" class="primary-btn small logout-btn">Switch Account / Log Out</button>
   </aside>
+
+  <!-- Security modal: PIN-gated name/PIN change and account deletion -->
+  <div id="securityModal" class="modal-overlay" hidden>
+    <div class="modal-card" id="securityCard"></div>
+  </div>
 
   <script src="script.js"></script>
 </body>

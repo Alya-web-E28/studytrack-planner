@@ -138,6 +138,22 @@ img {
   margin-bottom: 14px;
 }
 
+.auth-success {
+  background: var(--success-bg);
+  color: var(--success);
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.security-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 20px 0;
+}
+
 .auth-choice-buttons {
   display: flex;
   flex-direction: column;
@@ -940,6 +956,82 @@ img {
   min-height: 20px;
 }
 
+.detail-grade {
+  margin: 14px 0;
+}
+
+.detail-grade label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.optional-tag {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.grade-input-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.grade-input-row input {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  min-width: 0;
+}
+
+.grade-input-row input:focus {
+  outline: 2px solid var(--primary);
+}
+
+.grade-input-row button {
+  width: auto;
+  flex-shrink: 0;
+}
+
+.grade-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--input-bg);
+  border-left: 5px solid var(--assignment);
+  border-radius: 14px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: transform 0.1s ease, background 0.15s ease;
+}
+
+.grade-card:hover {
+  transform: translateY(-1px);
+  background: var(--assignment-bg);
+}
+
+.grade-card.exam-type {
+  border-left-color: var(--exam);
+}
+
+.grade-card.exam-type:hover {
+  background: var(--exam-bg);
+}
+
+.grade-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
 .detail-actions {
   display: flex;
   flex-direction: column;
@@ -1117,4 +1209,59 @@ img {
   background: var(--input-bg);
   color: var(--text);
   border: 1px solid var(--border);
+}
+
+#openSecurityBtn {
+  margin-bottom: 10px;
+}
+
+#clearDataBtn {
+  margin-bottom: 10px;
+}
+
+.settings-section-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+
+.accent-swatches {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+  transition: transform 0.1s ease;
+}
+
+.swatch:hover {
+  transform: scale(1.08);
+}
+
+.swatch.selected {
+  border-color: var(--text);
+}
+
+.swatch.selected::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }

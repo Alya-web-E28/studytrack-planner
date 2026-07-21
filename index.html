@@ -11,16 +11,32 @@
 </head>
 <body>
 
-  <!-- Welcome / greeting slide -->
+  <!-- Welcome / auth slide -->
   <div id="welcomeScreen" class="welcome-screen">
     <div class="welcome-card">
       <img src="assets/wave.svg" class="welcome-icon" alt="" />
-      <h1 id="welcomeGreeting">Welcome!</h1>
-      <p id="welcomeSub">Let's get you organized for the term.</p>
-      <div id="nameEntry" class="name-entry" hidden>
-        <input id="nameInput" placeholder="What's your name?" autocomplete="off" />
+      <h1 id="authHeading">Welcome!</h1>
+      <p id="authSub" class="auth-sub">Let's get you organized for the term.</p>
+
+      <div id="authError" class="auth-error" hidden></div>
+
+      <div id="authChoiceButtons" class="auth-choice-buttons">
+        <button id="showCreateBtn" class="primary-btn">Create New Account</button>
+        <button id="showLoginBtn" class="primary-btn secondary-style">Log In</button>
       </div>
-      <button id="welcomeContinueBtn" class="primary-btn">Get Started</button>
+
+      <div id="authNameWrap" class="auth-step" hidden>
+        <input id="authNameInput" class="auth-name-input" placeholder="Your name" autocomplete="off" maxlength="30" />
+        <button id="authNameContinueBtn" class="primary-btn">Continue</button>
+      </div>
+
+      <div id="authPinWrap" class="auth-step" hidden>
+        <div id="authPinDots" class="pin-dots"></div>
+        <div id="authPinPad" class="pinpad"></div>
+      </div>
+
+      <button id="authSwitchLink" class="link-btn" hidden>Not you? Use a different account</button>
+      <button id="authBackLink" class="link-btn" hidden>&larr; Back</button>
     </div>
   </div>
 
@@ -101,7 +117,7 @@
       <section id="view-add-assignment" class="view">
         <div class="page-header">
           <button id="backFromAssignment" class="icon-btn small">&larr;</button>
-          <h2 class="view-title"><img src="assets/memo.svg" class="inline-icon" alt="">New Assignment</h2>
+          <h2 class="view-title"><img src="assets/memo.svg" class="inline-icon" alt=""><span id="assignmentPageTitle">New Assignment</span></h2>
         </div>
         <form id="assignmentForm" class="add-form">
           <label>Assignment name
@@ -116,14 +132,14 @@
           <label>Teacher
             <input id="aTeacher" required placeholder="e.g. Mr. Smith" />
           </label>
-          <button type="submit" class="primary-btn assignment-btn">Add Assignment</button>
+          <button type="submit" id="assignmentSubmitBtn" class="primary-btn assignment-btn">Add Assignment</button>
         </form>
       </section>
 
       <section id="view-add-exam" class="view">
         <div class="page-header">
           <button id="backFromExam" class="icon-btn small">&larr;</button>
-          <h2 class="view-title"><img src="assets/books.svg" class="inline-icon" alt="">New Exam</h2>
+          <h2 class="view-title"><img src="assets/books.svg" class="inline-icon" alt=""><span id="examPageTitle">New Exam</span></h2>
         </div>
         <form id="examForm" class="add-form">
           <label>Exam / Subject
@@ -138,7 +154,7 @@
           <label>Teacher
             <input id="eTeacher" required placeholder="e.g. Ms. Johnson" />
           </label>
-          <button type="submit" class="primary-btn exam-btn">Add Exam</button>
+          <button type="submit" id="examSubmitBtn" class="primary-btn exam-btn">Add Exam</button>
         </form>
       </section>
     </main>
@@ -222,6 +238,7 @@
     </div>
 
     <button id="clearDataBtn" class="danger-btn">Clear All Data</button>
+    <button id="logOutBtn" class="primary-btn small logout-btn">Switch Account / Log Out</button>
   </aside>
 
   <script src="script.js"></script>

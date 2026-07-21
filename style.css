@@ -80,6 +80,10 @@ img {
   padding: 24px;
 }
 
+.welcome-screen[hidden] {
+  display: none;
+}
+
 .welcome-card {
   background: var(--panel);
   border-radius: 28px;
@@ -118,11 +122,43 @@ img {
   font-size: 0.95rem;
 }
 
-.name-entry {
-  margin-bottom: 16px;
+.auth-sub {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 0.95rem;
 }
 
-.name-entry input {
+.auth-error {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.auth-choice-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auth-choice-buttons[hidden] {
+  display: none;
+}
+
+.auth-step {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-step[hidden] {
+  display: none;
+}
+
+.auth-name-input {
   width: 100%;
   padding: 12px 14px;
   border-radius: 12px;
@@ -134,8 +170,90 @@ img {
   text-align: center;
 }
 
-.name-entry input:focus {
+.auth-name-input:focus {
   outline: 2px solid var(--primary);
+}
+
+.primary-btn.secondary-style {
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 16px;
+  text-decoration: underline;
+}
+
+.link-btn:hover {
+  color: var(--primary);
+}
+
+/* ---------- PIN pad ---------- */
+
+.pin-dots {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.pin-dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--input-bg);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.pin-dot.filled {
+  background: var(--primary);
+  border-color: var(--primary);
+  transform: scale(1.1);
+}
+
+.pinpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.pin-key {
+  aspect-ratio: 1 / 1;
+  border: none;
+  border-radius: 16px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1.3rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease, transform 0.08s ease;
+}
+
+.pin-key:hover {
+  background: var(--border);
+}
+
+.pin-key:active {
+  transform: scale(0.94);
+}
+
+.pin-key-empty {
+  background: transparent;
+  cursor: default;
+}
+
+.pin-key-back {
+  font-size: 1.1rem;
+  color: var(--muted);
 }
 
 /* ---------- Buttons ---------- */
@@ -248,6 +366,10 @@ img {
   flex-direction: column;
   overflow: hidden;
   position: relative;
+}
+
+.app-shell[hidden] {
+  display: none;
 }
 
 .topbar {
@@ -988,4 +1110,11 @@ img {
 .settings-stats small {
   color: var(--muted);
   font-size: 0.7rem;
+}
+
+.logout-btn {
+  margin-top: 10px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
 }

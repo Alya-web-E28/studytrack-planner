@@ -1,35 +1,50 @@
-const STORAGE_KEYS = { name: "sp_name", assignments: "sp_assignments", exams: "sp_exams" };
+const STORAGE_KEYS = { accounts: "sp_accounts", lastAccountId: "sp_lastAccountId" };
 
 function uid() {
   return "id-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
 }
 
-function loadJSON(key) {
+function loadJSON(key, fallback) {
   try {
-    return JSON.parse(localStorage.getItem(key)) || [];
+    return JSON.parse(localStorage.getItem(key)) ?? fallback;
   } catch {
-    return [];
+    return fallback;
   }
 }
 
 const state = {
-  name: localStorage.getItem(STORAGE_KEYS.name) || "",
-  assignments: loadJSON(STORAGE_KEYS.assignments),
-  exams: loadJSON(STORAGE_KEYS.exams),
+  accountId: null,
+  name: "",
+  assignments: [],
+  exams: [],
   calendarDate: new Date(),
   assignmentFilter: "all",
   examFilter: "all",
   lastMainView: "home",
+  editing: null, // { type: 'assignment'|'exam', id } while editing an existing item
 };
 
-function saveAssignments() {
-  localStorage.setItem(STORAGE_KEYS.assignments, JSON.stringify(state.assignments));
+// ---------- Accounts ----------
+
+function loadAccounts() {
+  return loadJSON(STORAGE_KEYS.accounts, []);
 }
-function saveExams() {
-  localStorage.setItem(STORAGE_KEYS.exams, JSON.stringify(state.exams));
+function saveAccounts(accounts) {
+  localStorage.setItem(STORAGE_KEYS.accounts, JSON.stringify(accounts));
 }
-function saveName() {
-  localStorage.setItem(STORAGE_KEYS.name, state.name);
+function accountDataKey(accountId) {
+  return `sp_data_${accountId}`;
+}
+function loadAccountData(accountId) {
+  const raw = loadJSON(accountDataKey(accountId), { assignments: [], exams: [] });
+  state.assignments = raw.assignments || [];
+  state.exams = raw.exams || [];
+}
+function saveAccountData() {
+  localStorage.setItem(
+    accountDataKey(state.accountId),
+    JSON.stringify({ assignments: state.assignments, exams: state.exams })
+  );
 }
 
 // ---------- Date helpers ----------
@@ -71,12 +86,22 @@ function dueBadge(key) {
 // ---------- DOM refs ----------
 
 const welcomeScreen = document.getElementById("welcomeScreen");
-const welcomeGreeting = document.getElementById("welcomeGreeting");
-const welcomeSub = document.getElementById("welcomeSub");
-const nameEntry = document.getElementById("nameEntry");
-const nameInput = document.getElementById("nameInput");
-const welcomeContinueBtn = document.getElementById("welcomeContinueBtn");
 const appShell = document.getElementById("appShell");
+
+const authHeading = document.getElementById("authHeading");
+const authSub = document.getElementById("authSub");
+const authError = document.getElementById("authError");
+const authChoiceButtons = document.getElementById("authChoiceButtons");
+const showCreateBtn = document.getElementById("showCreateBtn");
+const showLoginBtn = document.getElementById("showLoginBtn");
+const authNameWrap = document.getElementById("authNameWrap");
+const authNameInput = document.getElementById("authNameInput");
+const authNameContinueBtn = document.getElementById("authNameContinueBtn");
+const authPinWrap = document.getElementById("authPinWrap");
+const authPinDots = document.getElementById("authPinDots");
+const authPinPad = document.getElementById("authPinPad");
+const authSwitchLink = document.getElementById("authSwitchLink");
+const authBackLink = document.getElementById("authBackLink");
 
 const homeGreeting = document.getElementById("homeGreeting");
 const homeDate = document.getElementById("homeDate");
@@ -101,6 +126,10 @@ const backFromAssignment = document.getElementById("backFromAssignment");
 const backFromExam = document.getElementById("backFromExam");
 const assignmentForm = document.getElementById("assignmentForm");
 const examForm = document.getElementById("examForm");
+const assignmentPageTitle = document.getElementById("assignmentPageTitle");
+const examPageTitle = document.getElementById("examPageTitle");
+const assignmentSubmitBtn = document.getElementById("assignmentSubmitBtn");
+const examSubmitBtn = document.getElementById("examSubmitBtn");
 
 const detailModal = document.getElementById("detailModal");
 const detailCard = document.getElementById("detailCard");
@@ -115,30 +144,227 @@ const settingsName = document.getElementById("settingsName");
 const settingsNameInput = document.getElementById("settingsNameInput");
 const saveNameBtn = document.getElementById("saveNameBtn");
 const clearDataBtn = document.getElementById("clearDataBtn");
+const logOutBtn = document.getElementById("logOutBtn");
 const statAssignmentsTotal = document.getElementById("statAssignmentsTotal");
 const statExamsTotal = document.getElementById("statExamsTotal");
 const statCompletedTotal = document.getElementById("statCompletedTotal");
 
-// ---------- Welcome flow ----------
+// ---------- Auth flow (account creation / login / PIN pad) ----------
 
-function initWelcome() {
-  if (state.name) {
-    welcomeGreeting.textContent = `Welcome back, ${state.name}!`;
-    welcomeSub.textContent = "Ready to tackle today's work?";
-    nameEntry.hidden = true;
+welcomeScreen.style.transition = "opacity 0.2s ease";
+
+let authFlow = null; // 'create' | 'login' | 'returning'
+let authPinPurpose = null; // 'set' | 'confirm' | 'verify' | 'returning'
+let authPendingName = "";
+let authPendingPin = "";
+let authFoundAccount = null;
+let pinBuffer = "";
+
+function setAuthTexts(heading, sub) {
+  authHeading.textContent = heading;
+  authSub.textContent = sub;
+}
+
+function showAuthError(msg) {
+  authError.textContent = msg;
+  authError.hidden = false;
+}
+
+function hideAuthError() {
+  authError.hidden = true;
+}
+
+function showChoiceStep() {
+  authChoiceButtons.hidden = false;
+  authNameWrap.hidden = true;
+  authPinWrap.hidden = true;
+  authSwitchLink.hidden = true;
+  authBackLink.hidden = true;
+  hideAuthError();
+  setAuthTexts("Welcome!", "Let's get you organized for the term.");
+}
+
+function showNameStep(flow) {
+  authFlow = flow;
+  authChoiceButtons.hidden = true;
+  authNameWrap.hidden = false;
+  authPinWrap.hidden = true;
+  authSwitchLink.hidden = true;
+  authBackLink.hidden = false;
+  hideAuthError();
+  authNameInput.value = "";
+  if (flow === "create") {
+    setAuthTexts("Create Account", "What's your name?");
   } else {
-    welcomeGreeting.textContent = "Welcome!";
-    welcomeSub.textContent = "Let's get you organized for the term.";
-    nameEntry.hidden = false;
+    setAuthTexts("Log In", "Enter your account name.");
+  }
+  authNameInput.focus();
+}
+
+function updatePinDots() {
+  authPinDots.innerHTML = "";
+  for (let i = 0; i < 6; i++) {
+    const dot = document.createElement("span");
+    dot.className = "pin-dot" + (i < pinBuffer.length ? " filled" : "");
+    authPinDots.appendChild(dot);
   }
 }
 
-welcomeContinueBtn.addEventListener("click", () => {
-  if (!state.name) {
-    const typed = nameInput.value.trim();
-    state.name = typed || "Student";
-    saveName();
+function showPinStep() {
+  authChoiceButtons.hidden = true;
+  authNameWrap.hidden = true;
+  authPinWrap.hidden = false;
+  authBackLink.hidden = false;
+  authSwitchLink.hidden = true;
+  pinBuffer = "";
+  updatePinDots();
+  hideAuthError();
+}
+
+function showReturningStep(account) {
+  authFlow = "returning";
+  authPinPurpose = "returning";
+  authFoundAccount = account;
+  authChoiceButtons.hidden = true;
+  authNameWrap.hidden = true;
+  authPinWrap.hidden = false;
+  authBackLink.hidden = true;
+  authSwitchLink.hidden = false;
+  pinBuffer = "";
+  updatePinDots();
+  hideAuthError();
+  setAuthTexts(`Welcome back, ${account.name}!`, "Enter your PIN to continue.");
+}
+
+function buildPinPad() {
+  authPinPad.innerHTML = "";
+  const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "back"];
+  keys.forEach((k) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    if (k === "back") {
+      btn.className = "pin-key pin-key-back";
+      btn.innerHTML = "&larr;";
+      btn.addEventListener("click", onPinBackspace);
+    } else if (k === "") {
+      btn.className = "pin-key pin-key-empty";
+      btn.disabled = true;
+      btn.tabIndex = -1;
+    } else {
+      btn.className = "pin-key";
+      btn.textContent = k;
+      btn.addEventListener("click", () => onPinDigit(k));
+    }
+    authPinPad.appendChild(btn);
+  });
+}
+
+function onPinDigit(d) {
+  if (pinBuffer.length >= 6) return;
+  pinBuffer += d;
+  updatePinDots();
+  hideAuthError();
+  if (pinBuffer.length === 6) handlePinComplete();
+}
+
+function onPinBackspace() {
+  pinBuffer = pinBuffer.slice(0, -1);
+  updatePinDots();
+}
+
+function handlePinComplete() {
+  const entered = pinBuffer;
+  if (authPinPurpose === "set") {
+    authPendingPin = entered;
+    pinBuffer = "";
+    authPinPurpose = "confirm";
+    setAuthTexts("Confirm your PIN", "Enter it again to confirm.");
+    updatePinDots();
+  } else if (authPinPurpose === "confirm") {
+    if (entered === authPendingPin) {
+      finalizeCreateAccount(authPendingName, entered);
+    } else {
+      showAuthError("Those PINs didn't match. Let's try again.");
+      pinBuffer = "";
+      authPendingPin = "";
+      authPinPurpose = "set";
+      setAuthTexts("Choose a 6-digit PIN", "You'll use this to log back in.");
+      updatePinDots();
+    }
+  } else if (authPinPurpose === "verify" || authPinPurpose === "returning") {
+    if (authFoundAccount && authFoundAccount.pin === entered) {
+      logIn(authFoundAccount);
+    } else {
+      showAuthError("Incorrect PIN. Try again.");
+      pinBuffer = "";
+      updatePinDots();
+    }
   }
+}
+
+showCreateBtn.addEventListener("click", () => showNameStep("create"));
+showLoginBtn.addEventListener("click", () => showNameStep("login"));
+
+authNameContinueBtn.addEventListener("click", () => {
+  const trimmed = authNameInput.value.trim();
+  if (trimmed.length < 2) {
+    showAuthError("Name must be at least 2 characters.");
+    return;
+  }
+  const nameKey = trimmed.toLowerCase();
+  const accounts = loadAccounts();
+
+  if (authFlow === "create") {
+    if (accounts.some((a) => a.nameKey === nameKey)) {
+      showAuthError("That name is already taken. Try logging in instead.");
+      return;
+    }
+    authPendingName = trimmed;
+    authPinPurpose = "set";
+    showPinStep();
+    setAuthTexts("Choose a 6-digit PIN", "You'll use this to log back in.");
+  } else {
+    const found = accounts.find((a) => a.nameKey === nameKey);
+    if (!found) {
+      showAuthError("No account found with that name.");
+      return;
+    }
+    authFoundAccount = found;
+    authPinPurpose = "verify";
+    showPinStep();
+    setAuthTexts(`Hi, ${found.name}!`, "Enter your PIN.");
+  }
+});
+
+authNameInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") authNameContinueBtn.click();
+});
+
+authBackLink.addEventListener("click", () => {
+  if (!authPinWrap.hidden && authFlow !== "returning") {
+    showNameStep(authFlow);
+  } else {
+    showChoiceStep();
+  }
+});
+
+authSwitchLink.addEventListener("click", showChoiceStep);
+
+function finalizeCreateAccount(name, pin) {
+  const accounts = loadAccounts();
+  const account = { id: uid(), name, nameKey: name.toLowerCase(), pin, createdAt: Date.now() };
+  accounts.push(account);
+  saveAccounts(accounts);
+  localStorage.setItem(accountDataKey(account.id), JSON.stringify({ assignments: [], exams: [] }));
+  logIn(account);
+}
+
+function logIn(account) {
+  localStorage.setItem(STORAGE_KEYS.lastAccountId, account.id);
+  state.accountId = account.id;
+  state.name = account.name;
+  loadAccountData(account.id);
+
   welcomeScreen.style.opacity = "0";
   welcomeScreen.style.pointerEvents = "none";
   setTimeout(() => {
@@ -146,9 +372,26 @@ welcomeContinueBtn.addEventListener("click", () => {
     appShell.hidden = false;
     renderAll();
   }, 200);
-});
+}
 
-welcomeScreen.style.transition = "opacity 0.2s ease";
+function showWelcomeScreen() {
+  appShell.hidden = true;
+  welcomeScreen.hidden = false;
+  welcomeScreen.style.opacity = "1";
+  welcomeScreen.style.pointerEvents = "auto";
+}
+
+function initAuth() {
+  buildPinPad();
+  const accounts = loadAccounts();
+  const lastId = localStorage.getItem(STORAGE_KEYS.lastAccountId);
+  const remembered = accounts.find((a) => a.id === lastId);
+  if (remembered) {
+    showReturningStep(remembered);
+  } else {
+    showChoiceStep();
+  }
+}
 
 // ---------- Navigation ----------
 
@@ -278,18 +521,17 @@ function toggleComplete(type, id) {
   const item = list.find((i) => i.id === id);
   if (!item) return;
   item.completed = !item.completed;
-  type === "exam" ? saveExams() : saveAssignments();
+  saveAccountData();
   renderAll();
 }
 
 function deleteItem(type, id) {
   if (type === "exam") {
     state.exams = state.exams.filter((i) => i.id !== id);
-    saveExams();
   } else {
     state.assignments = state.assignments.filter((i) => i.id !== id);
-    saveAssignments();
   }
+  saveAccountData();
   renderAll();
 }
 
@@ -393,27 +635,73 @@ addChooser.addEventListener("click", (e) => {
 
 chooseAssignmentBtn.addEventListener("click", () => {
   addChooser.hidden = true;
+  state.editing = null;
+  assignmentForm.reset();
+  assignmentPageTitle.textContent = "New Assignment";
+  assignmentSubmitBtn.textContent = "Add Assignment";
   switchView("add-assignment");
 });
 chooseExamBtn.addEventListener("click", () => {
   addChooser.hidden = true;
+  state.editing = null;
+  examForm.reset();
+  examPageTitle.textContent = "New Exam";
+  examSubmitBtn.textContent = "Add Exam";
   switchView("add-exam");
 });
 
-backFromAssignment.addEventListener("click", () => switchView(state.lastMainView));
-backFromExam.addEventListener("click", () => switchView(state.lastMainView));
+backFromAssignment.addEventListener("click", () => {
+  state.editing = null;
+  switchView(state.lastMainView);
+});
+backFromExam.addEventListener("click", () => {
+  state.editing = null;
+  switchView(state.lastMainView);
+});
+
+function openEditForm(type, id) {
+  const list = type === "exam" ? state.exams : state.assignments;
+  const item = list.find((i) => i.id === id);
+  if (!item) return;
+  state.editing = { type, id };
+
+  if (type === "assignment") {
+    document.getElementById("aName").value = item.name;
+    document.getElementById("aDetails").value = item.details;
+    document.getElementById("aDueDate").value = item.dueDate;
+    document.getElementById("aTeacher").value = item.teacher;
+    assignmentPageTitle.textContent = "Edit Assignment";
+    assignmentSubmitBtn.textContent = "Save Changes";
+    switchView("add-assignment");
+  } else {
+    document.getElementById("eName").value = item.name;
+    document.getElementById("eDetails").value = item.details;
+    document.getElementById("eDate").value = item.date;
+    document.getElementById("eTeacher").value = item.teacher;
+    examPageTitle.textContent = "Edit Exam";
+    examSubmitBtn.textContent = "Save Changes";
+    switchView("add-exam");
+  }
+}
 
 assignmentForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  state.assignments.push({
-    id: uid(),
+  const values = {
     name: document.getElementById("aName").value.trim(),
     details: document.getElementById("aDetails").value.trim(),
     dueDate: document.getElementById("aDueDate").value,
     teacher: document.getElementById("aTeacher").value.trim(),
-    completed: false,
-  });
-  saveAssignments();
+  };
+
+  if (state.editing && state.editing.type === "assignment") {
+    const item = state.assignments.find((i) => i.id === state.editing.id);
+    Object.assign(item, values);
+  } else {
+    state.assignments.push({ id: uid(), ...values, completed: false });
+  }
+
+  state.editing = null;
+  saveAccountData();
   assignmentForm.reset();
   renderAll();
   switchView("assignments");
@@ -421,15 +709,22 @@ assignmentForm.addEventListener("submit", (e) => {
 
 examForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  state.exams.push({
-    id: uid(),
+  const values = {
     name: document.getElementById("eName").value.trim(),
     details: document.getElementById("eDetails").value.trim(),
     date: document.getElementById("eDate").value,
     teacher: document.getElementById("eTeacher").value.trim(),
-    completed: false,
-  });
-  saveExams();
+  };
+
+  if (state.editing && state.editing.type === "exam") {
+    const item = state.exams.find((i) => i.id === state.editing.id);
+    Object.assign(item, values);
+  } else {
+    state.exams.push({ id: uid(), ...values, completed: false });
+  }
+
+  state.editing = null;
+  saveAccountData();
   examForm.reset();
   renderAll();
   switchView("exams");
@@ -460,6 +755,7 @@ function renderDetailCard(type, item, when, typeLabel) {
     <div class="detail-meta">📅 ${formatPretty(when)} · ${dueBadge(when)}</div>
     <div class="detail-details">${escapeHtml(item.details) || "No additional details."}</div>
     <div class="detail-actions">
+      <button id="detailEditBtn" class="primary-btn small secondary-style">Edit ${typeLabel}</button>
       <button id="detailCompleteBtn" class="${item.completed ? "primary-btn small" : "success-btn"}">
         ${item.completed ? "Mark Incomplete" : "Mark Complete"}
       </button>
@@ -467,6 +763,11 @@ function renderDetailCard(type, item, when, typeLabel) {
       <div id="detailConfirmSlot"></div>
     </div>
   `;
+
+  document.getElementById("detailEditBtn").addEventListener("click", () => {
+    detailModal.hidden = true;
+    openEditForm(type, item.id);
+  });
 
   document.getElementById("detailCompleteBtn").addEventListener("click", () => {
     toggleComplete(type, item.id);
@@ -527,12 +828,21 @@ settingsOverlay.addEventListener("click", closeSettingsDrawer);
 
 saveNameBtn.addEventListener("click", () => {
   const val = settingsNameInput.value.trim();
-  if (val) {
-    state.name = val;
-    saveName();
-    renderHome();
-    settingsName.textContent = state.name;
+  if (val.length < 2) return;
+  const nameKey = val.toLowerCase();
+  const accounts = loadAccounts();
+  const taken = accounts.some((a) => a.id !== state.accountId && a.nameKey === nameKey);
+  if (taken) return;
+
+  const acc = accounts.find((a) => a.id === state.accountId);
+  if (acc) {
+    acc.name = val;
+    acc.nameKey = nameKey;
+    saveAccounts(accounts);
   }
+  state.name = val;
+  renderHome();
+  settingsName.textContent = state.name;
 });
 
 clearDataBtn.addEventListener("click", () => {
@@ -551,13 +861,19 @@ clearDataBtn.addEventListener("click", () => {
   document.getElementById("clearYes").addEventListener("click", () => {
     state.assignments = [];
     state.exams = [];
-    saveAssignments();
-    saveExams();
+    saveAccountData();
     row.remove();
     renderAll();
     settingsBtn.click();
   });
   document.getElementById("clearNo").addEventListener("click", () => row.remove());
+});
+
+logOutBtn.addEventListener("click", () => {
+  localStorage.removeItem(STORAGE_KEYS.lastAccountId);
+  closeSettingsDrawer();
+  showWelcomeScreen();
+  initAuth();
 });
 
 // ---------- Init ----------
@@ -569,4 +885,4 @@ function renderAll() {
   renderExams();
 }
 
-initWelcome();
+initAuth();

@@ -17,11 +17,14 @@ const state = {
   name: "",
   assignments: [],
   exams: [],
+  subjects: [],
   calendarDate: new Date(),
   assignmentFilter: "all",
   examFilter: "all",
   lastMainView: "home",
   editing: null, // { type: 'assignment'|'exam', id } while editing an existing item
+  editingSubjectId: null, // subject currently being edited in the Manage Subjects modal
+  gradesFolder: null, // subject id ('none' for unassigned) currently drilled into on the Grades page
 };
 
 // ---------- Accounts ----------
@@ -36,14 +39,15 @@ function accountDataKey(accountId) {
   return `sp_data_${accountId}`;
 }
 function loadAccountData(accountId) {
-  const raw = loadJSON(accountDataKey(accountId), { assignments: [], exams: [] });
+  const raw = loadJSON(accountDataKey(accountId), { assignments: [], exams: [], subjects: [] });
   state.assignments = raw.assignments || [];
   state.exams = raw.exams || [];
+  state.subjects = raw.subjects || [];
 }
 function saveAccountData() {
   localStorage.setItem(
     accountDataKey(state.accountId),
-    JSON.stringify({ assignments: state.assignments, exams: state.exams })
+    JSON.stringify({ assignments: state.assignments, exams: state.exams, subjects: state.subjects })
   );
 }
 
@@ -89,6 +93,10 @@ function daysUntil(key) {
   return Math.round((target - now) / (1000 * 60 * 60 * 24));
 }
 
+function tCount(singularKey, pluralKey, count) {
+  return t(count === 1 ? singularKey : pluralKey, { count });
+}
+
 function dueBadge(key) {
   const diff = daysUntil(key);
   if (diff < 0) return t("badge_overdue", { n: Math.abs(diff) });
@@ -132,6 +140,9 @@ const assignmentsList = document.getElementById("assignmentsList");
 const examsList = document.getElementById("examsList");
 const gradesList = document.getElementById("gradesList");
 const gradesCount = document.getElementById("gradesCount");
+const gradesFolderHeader = document.getElementById("gradesFolderHeader");
+const gradesFolderTitle = document.getElementById("gradesFolderTitle");
+const backToGradesFolders = document.getElementById("backToGradesFolders");
 
 const addFab = document.getElementById("addFab");
 const addChooser = document.getElementById("addChooser");
@@ -164,6 +175,11 @@ const securityModal = document.getElementById("securityModal");
 const securityCard = document.getElementById("securityCard");
 const accentSwatches = document.getElementById("accentSwatches");
 const languageSelect = document.getElementById("languageSelect");
+const openSubjectsBtn = document.getElementById("openSubjectsBtn");
+const subjectsModal = document.getElementById("subjectsModal");
+const subjectsListArea = document.getElementById("subjectsListArea");
+const subjectFormArea = document.getElementById("subjectFormArea");
+const closeSubjectsModal = document.getElementById("closeSubjectsModal");
 const logOutBtn = document.getElementById("logOutBtn");
 const statAssignmentsTotal = document.getElementById("statAssignmentsTotal");
 const statExamsTotal = document.getElementById("statExamsTotal");
@@ -376,7 +392,7 @@ function finalizeCreateAccount(name, pin) {
   const account = { id: uid(), name, nameKey: name.toLowerCase(), pin, createdAt: Date.now() };
   accounts.push(account);
   saveAccounts(accounts);
-  localStorage.setItem(accountDataKey(account.id), JSON.stringify({ assignments: [], exams: [] }));
+  localStorage.setItem(accountDataKey(account.id), JSON.stringify({ assignments: [], exams: [], subjects: [] }));
   logIn(account);
 }
 
@@ -384,7 +400,9 @@ function logIn(account) {
   localStorage.setItem(STORAGE_KEYS.lastAccountId, account.id);
   state.accountId = account.id;
   state.name = account.name;
+  state.gradesFolder = null;
   loadAccountData(account.id);
+  populateAllSubjectSelects();
 
   welcomeScreen.style.opacity = "0";
   welcomeScreen.style.pointerEvents = "none";
@@ -454,6 +472,11 @@ function renderHome() {
   wireItemCards(upcomingList);
 }
 
+function subjectDotHTML(subjectId) {
+  const subject = subjectId ? getSubjectById(subjectId) : null;
+  return subject ? `<span class="subject-dot" style="background:${subject.color}"></span>` : "";
+}
+
 function itemCardHTML(item) {
   const typeClass = item.type === "exam" ? "exam-type" : "";
   const completedClass = item.completed ? "completed" : "";
@@ -461,7 +484,7 @@ function itemCardHTML(item) {
     <div class="item-card ${typeClass} ${completedClass}" data-type="${item.type}" data-id="${item.id}">
       <div class="item-checkbox ${item.completed ? "checked" : ""}" data-checkbox="${item.id}" data-type="${item.type}">${item.completed ? "✓" : ""}</div>
       <div class="item-info">
-        <div class="item-name">${escapeHtml(item.name)}</div>
+        <div class="item-name">${subjectDotHTML(item.subject)}${escapeHtml(item.name)}</div>
         <div class="item-meta">${escapeHtml(item.teacher)} · ${formatPretty(item.when)}</div>
       </div>
       <div class="item-badge">${dueBadge(item.when)}</div>
@@ -521,16 +544,90 @@ function renderExams() {
   wireItemCards(examsList);
 }
 
-function renderGrades() {
-  const graded = [
+function getGradedItems() {
+  return [
     ...state.assignments.filter((a) => a.grade).map((a) => ({ ...a, type: "assignment", when: a.dueDate })),
     ...state.exams.filter((e) => e.grade).map((e) => ({ ...e, type: "exam", when: e.date })),
-  ].sort((a, b) => b.when.localeCompare(a.when));
+  ];
+}
 
-  gradesCount.textContent = graded.length ? t("grades_countRecorded", { count: graded.length }) : t("grades_none");
+function subjectFolderKey(item) {
+  return item.subject && getSubjectById(item.subject) ? item.subject : "none";
+}
+
+function renderGrades() {
+  if (state.gradesFolder) {
+    renderGradesFolderDetail(state.gradesFolder);
+  } else {
+    renderGradesFolderList();
+  }
+}
+
+function renderGradesFolderList() {
+  gradesFolderHeader.hidden = true;
+  const graded = getGradedItems();
 
   if (graded.length === 0) {
+    gradesCount.textContent = t("grades_none");
+    gradesList.className = "item-list";
     gradesList.innerHTML = `<div class="item-empty">${escapeHtml(t("grades_emptyHint"))}</div>`;
+    return;
+  }
+
+  gradesCount.textContent = tCount("grades_countRecordedSingular", "grades_countRecorded", graded.length);
+
+  const bySubject = {};
+  graded.forEach((item) => {
+    const key = subjectFolderKey(item);
+    (bySubject[key] ||= []).push(item);
+  });
+
+  const folders = Object.keys(bySubject).map((key) => {
+    const subject = key === "none" ? null : getSubjectById(key);
+    return {
+      id: key,
+      name: subject ? subject.name : t("grades_noSubjectFolder"),
+      color: subject ? subject.color : "#9ca3af",
+      count: bySubject[key].length,
+    };
+  });
+  folders.sort((a, b) => (a.id === "none" ? 1 : b.id === "none" ? -1 : a.name.localeCompare(b.name)));
+
+  gradesList.className = "folder-grid";
+  gradesList.innerHTML = folders
+    .map(
+      (f) => `
+    <button type="button" class="folder-card" data-subject="${f.id}">
+      <div class="folder-icon" style="background:${f.color}"></div>
+      <div class="folder-name">${escapeHtml(f.name)}</div>
+      <div class="folder-count">${escapeHtml(tCount("grades_gradeCountSingular", "grades_gradeCount", f.count))}</div>
+    </button>
+  `
+    )
+    .join("");
+
+  gradesList.querySelectorAll(".folder-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      state.gradesFolder = card.dataset.subject;
+      renderGrades();
+    });
+  });
+}
+
+function renderGradesFolderDetail(subjectKey) {
+  const subject = subjectKey === "none" ? null : getSubjectById(subjectKey);
+  gradesFolderHeader.hidden = false;
+  gradesFolderTitle.textContent = subject ? subject.name : t("grades_noSubjectFolder");
+
+  const graded = getGradedItems()
+    .filter((item) => subjectFolderKey(item) === subjectKey)
+    .sort((a, b) => b.when.localeCompare(a.when));
+
+  gradesCount.textContent = tCount("grades_countRecordedSingular", "grades_countRecorded", graded.length);
+  gradesList.className = "item-list";
+
+  if (graded.length === 0) {
+    gradesList.innerHTML = `<div class="item-empty">${escapeHtml(t("grades_none"))}</div>`;
     return;
   }
 
@@ -552,6 +649,11 @@ function renderGrades() {
     card.addEventListener("click", () => openDetail(card.dataset.type, card.dataset.id));
   });
 }
+
+backToGradesFolders.addEventListener("click", () => {
+  state.gradesFolder = null;
+  renderGrades();
+});
 
 document.getElementById("assignmentFilters").addEventListener("click", (e) => {
   const btn = e.target.closest(".filter-btn");
@@ -680,6 +782,40 @@ function openDayModal(key, items) {
   dayModal.hidden = false;
 }
 
+// ---------- Subjects ----------
+
+const SUBJECT_COLORS = [
+  "#ef4444",
+  "#f97316",
+  "#f59e0b",
+  "#84cc16",
+  "#22c55e",
+  "#14b8a6",
+  "#3b82f6",
+  "#6366f1",
+  "#a855f7",
+  "#ec4899",
+];
+
+function getSubjectById(id) {
+  return state.subjects.find((s) => s.id === id) || null;
+}
+
+function populateSubjectSelect(selectEl, selectedId) {
+  const options = [`<option value="">${escapeHtml(t("field_subjectNone"))}</option>`].concat(
+    state.subjects.map(
+      (s) => `<option value="${s.id}" ${s.id === selectedId ? "selected" : ""}>${escapeHtml(s.name)}</option>`
+    )
+  );
+  selectEl.innerHTML = options.join("");
+  if (!selectedId) selectEl.value = "";
+}
+
+function populateAllSubjectSelects() {
+  populateSubjectSelect(document.getElementById("aSubject"), document.getElementById("aSubject").value);
+  populateSubjectSelect(document.getElementById("eSubject"), document.getElementById("eSubject").value);
+}
+
 // ---------- Add chooser + dedicated add pages ----------
 
 addFab.addEventListener("click", () => {
@@ -694,6 +830,7 @@ chooseAssignmentBtn.addEventListener("click", () => {
   addChooser.hidden = true;
   state.editing = null;
   assignmentForm.reset();
+  populateSubjectSelect(document.getElementById("aSubject"), "");
   assignmentPageTitle.textContent = t("addAssignment_newTitle");
   assignmentSubmitBtn.textContent = t("btn_addAssignment");
   switchView("add-assignment");
@@ -702,6 +839,7 @@ chooseExamBtn.addEventListener("click", () => {
   addChooser.hidden = true;
   state.editing = null;
   examForm.reset();
+  populateSubjectSelect(document.getElementById("eSubject"), "");
   examPageTitle.textContent = t("addExam_newTitle");
   examSubmitBtn.textContent = t("btn_addExam");
   switchView("add-exam");
@@ -727,6 +865,7 @@ function openEditForm(type, id) {
     document.getElementById("aDetails").value = item.details;
     document.getElementById("aDueDate").value = item.dueDate;
     document.getElementById("aTeacher").value = item.teacher;
+    populateSubjectSelect(document.getElementById("aSubject"), item.subject || "");
     assignmentPageTitle.textContent = t("addAssignment_editTitle");
     assignmentSubmitBtn.textContent = t("btn_saveChanges");
     switchView("add-assignment");
@@ -735,6 +874,7 @@ function openEditForm(type, id) {
     document.getElementById("eDetails").value = item.details;
     document.getElementById("eDate").value = item.date;
     document.getElementById("eTeacher").value = item.teacher;
+    populateSubjectSelect(document.getElementById("eSubject"), item.subject || "");
     examPageTitle.textContent = t("addExam_editTitle");
     examSubmitBtn.textContent = t("btn_saveChanges");
     switchView("add-exam");
@@ -748,6 +888,7 @@ assignmentForm.addEventListener("submit", (e) => {
     details: document.getElementById("aDetails").value.trim(),
     dueDate: document.getElementById("aDueDate").value,
     teacher: document.getElementById("aTeacher").value.trim(),
+    subject: document.getElementById("aSubject").value,
   };
 
   if (state.editing && state.editing.type === "assignment") {
@@ -771,6 +912,7 @@ examForm.addEventListener("submit", (e) => {
     details: document.getElementById("eDetails").value.trim(),
     date: document.getElementById("eDate").value,
     teacher: document.getElementById("eTeacher").value.trim(),
+    subject: document.getElementById("eSubject").value,
   };
 
   if (state.editing && state.editing.type === "exam") {
@@ -807,7 +949,7 @@ function renderDetailCard(type, item, when, typeLabel) {
 
   detailCard.innerHTML = `
     <div class="detail-header">
-      <h3 class="detail-title">${escapeHtml(item.name)}</h3>
+      <h3 class="detail-title">${subjectDotHTML(item.subject)}${escapeHtml(item.name)}</h3>
       <span class="detail-badge ${type === "exam" ? "exam-type" : ""} ${item.completed ? "completed-type" : ""}">
         ${item.completed ? escapeHtml(t("badge_completed")) : escapeHtml(typeLabel)}
       </span>
@@ -1238,6 +1380,148 @@ applyAccentColor(loadAccentColor());
 renderAccentSwatches();
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => applyAccentColor(loadAccentColor()));
 
+// ---------- Manage Subjects modal ----------
+
+function renderSubjectsList() {
+  if (state.subjects.length === 0) {
+    subjectsListArea.innerHTML = `<p class="auth-sub">${escapeHtml(t("subjects_empty"))}</p>`;
+    return;
+  }
+  subjectsListArea.innerHTML = `
+    <div class="subjects-list">
+      ${state.subjects
+        .map(
+          (s) => `
+        <div class="subject-row" data-row="${s.id}">
+          <span class="subject-dot" style="background:${s.color}"></span>
+          <span class="subject-row-name">${escapeHtml(s.name)}</span>
+          <div class="subject-row-actions">
+            <button type="button" data-edit="${s.id}" aria-label="${escapeHtml(t("subjects_edit"))}">&#9998;</button>
+            <button type="button" data-delete="${s.id}" aria-label="${escapeHtml(t("subjects_delete"))}">&#128465;</button>
+          </div>
+        </div>
+      `
+        )
+        .join("")}
+    </div>
+  `;
+
+  subjectsListArea.querySelectorAll("[data-edit]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.editingSubjectId = btn.dataset.edit;
+      renderSubjectForm();
+    });
+  });
+  subjectsListArea.querySelectorAll("[data-delete]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const row = btn.closest(".subject-row");
+      if (row.querySelector(".confirm-row")) return;
+      const confirmRow = document.createElement("div");
+      confirmRow.className = "confirm-row";
+      confirmRow.style.marginTop = "8px";
+      confirmRow.style.flexBasis = "100%";
+      confirmRow.innerHTML = `
+        <span>${escapeHtml(t("subjects_deleteConfirm"))}</span>
+        <button type="button" class="confirm-yes">${escapeHtml(t("common_yes"))}</button>
+        <button type="button" class="confirm-no">${escapeHtml(t("common_no"))}</button>
+      `;
+      row.appendChild(confirmRow);
+      confirmRow.querySelector(".confirm-yes").addEventListener("click", () => deleteSubject(btn.dataset.delete));
+      confirmRow.querySelector(".confirm-no").addEventListener("click", () => confirmRow.remove());
+    });
+  });
+}
+
+function renderSubjectForm() {
+  const editing = state.editingSubjectId ? getSubjectById(state.editingSubjectId) : null;
+  const nameValue = editing ? editing.name : "";
+  let chosenColor = editing ? editing.color : SUBJECT_COLORS[0];
+
+  subjectFormArea.innerHTML = `
+    <div id="subjectFormError" class="auth-error" hidden></div>
+    <label class="settings-field">${escapeHtml(t("subjects_nameLabel"))}
+      <input id="subjectNameInput" placeholder="${escapeHtml(t("subjects_namePlaceholder"))}" value="${escapeHtml(nameValue)}" />
+    </label>
+    <div class="settings-section-label">${escapeHtml(t("subjects_colorLabel"))}</div>
+    <div id="subjectColorSwatches" class="accent-swatches"></div>
+    <button type="button" id="subjectSaveBtn" class="primary-btn small">${escapeHtml(editing ? t("subjects_saveBtn") : t("subjects_addBtn"))}</button>
+  `;
+
+  const swatchWrap = document.getElementById("subjectColorSwatches");
+  SUBJECT_COLORS.forEach((color) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "swatch" + (color === chosenColor ? " selected" : "");
+    btn.style.background = color;
+    btn.addEventListener("click", () => {
+      chosenColor = color;
+      swatchWrap.querySelectorAll(".swatch").forEach((s) => s.classList.remove("selected"));
+      btn.classList.add("selected");
+    });
+    swatchWrap.appendChild(btn);
+  });
+
+  document.getElementById("subjectSaveBtn").addEventListener("click", () => {
+    const name = document.getElementById("subjectNameInput").value.trim();
+    const errEl = document.getElementById("subjectFormError");
+    if (!name) {
+      errEl.textContent = t("subjects_nameRequired");
+      errEl.hidden = false;
+      return;
+    }
+    const nameKey = name.toLowerCase();
+    const taken = state.subjects.some((s) => s.nameKey === nameKey && s.id !== state.editingSubjectId);
+    if (taken) {
+      errEl.textContent = t("subjects_nameTaken");
+      errEl.hidden = false;
+      return;
+    }
+
+    if (state.editingSubjectId) {
+      const subject = getSubjectById(state.editingSubjectId);
+      subject.name = name;
+      subject.nameKey = nameKey;
+      subject.color = chosenColor;
+    } else {
+      state.subjects.push({ id: uid(), name, nameKey, color: chosenColor });
+    }
+    saveAccountData();
+    state.editingSubjectId = null;
+    populateAllSubjectSelects();
+    renderGrades();
+    renderSubjectsList();
+    renderSubjectForm();
+  });
+}
+
+function deleteSubject(id) {
+  state.subjects = state.subjects.filter((s) => s.id !== id);
+  state.assignments.forEach((a) => {
+    if (a.subject === id) a.subject = "";
+  });
+  state.exams.forEach((e) => {
+    if (e.subject === id) e.subject = "";
+  });
+  saveAccountData();
+  if (state.gradesFolder === id) state.gradesFolder = null;
+  if (state.editingSubjectId === id) state.editingSubjectId = null;
+  populateAllSubjectSelects();
+  renderAll();
+  renderSubjectsList();
+  renderSubjectForm();
+}
+
+openSubjectsBtn.addEventListener("click", () => {
+  state.editingSubjectId = null;
+  renderSubjectsList();
+  renderSubjectForm();
+  subjectsModal.hidden = false;
+});
+closeSubjectsModal.addEventListener("click", () => (subjectsModal.hidden = true));
+subjectsModal.addEventListener("click", (e) => {
+  if (e.target === subjectsModal) subjectsModal.hidden = true;
+});
+
 // ---------- Language ----------
 
 function renderLanguageOptions() {
@@ -1256,6 +1540,7 @@ function updateDirectionalArrows() {
 function refreshAfterLanguageChange() {
   applyTranslations();
   updateDirectionalArrows();
+  populateAllSubjectSelects();
   renderAll();
   if (!authError.hidden) authError.hidden = true;
 }

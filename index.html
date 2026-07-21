@@ -116,6 +116,10 @@
 
       <section id="view-grades" class="view">
         <h2 class="view-title"><img src="assets/hundred.svg" class="inline-icon" alt=""><span data-i18n="grades_title">Grades</span></h2>
+        <div id="gradesFolderHeader" class="page-header" hidden>
+          <button id="backToGradesFolders" class="icon-btn small">&larr;</button>
+          <h2 class="view-title" id="gradesFolderTitle"></h2>
+        </div>
         <p class="view-sub" id="gradesCount" data-i18n="grades_none">No grades recorded yet.</p>
         <div id="gradesList" class="item-list"></div>
       </section>
@@ -138,6 +142,9 @@
           <label><span data-i18n="field_teacher">Teacher</span>
             <input id="aTeacher" required data-i18n-placeholder="field_teacherPlaceholderAssignment" placeholder="e.g. Mr. Smith" />
           </label>
+          <label><span data-i18n="field_subject">Subject</span>
+            <select id="aSubject"></select>
+          </label>
           <button type="submit" id="assignmentSubmitBtn" class="primary-btn assignment-btn" data-i18n="btn_addAssignment">Add Assignment</button>
         </form>
       </section>
@@ -159,6 +166,9 @@
           </label>
           <label><span data-i18n="field_teacher">Teacher</span>
             <input id="eTeacher" required data-i18n-placeholder="field_teacherPlaceholderExam" placeholder="e.g. Ms. Johnson" />
+          </label>
+          <label><span data-i18n="field_subject">Subject</span>
+            <select id="eSubject"></select>
           </label>
           <button type="submit" id="examSubmitBtn" class="primary-btn exam-btn" data-i18n="btn_addExam">Add Exam</button>
         </form>
@@ -234,11 +244,14 @@
       </div>
     </div>
 
-    <div class="settings-section-label" data-i18n="settings_language">Language</div>
+    <div class="settings-section-label"><span aria-hidden="true">🌐</span> <span data-i18n="settings_language">Language</span></div>
     <select id="languageSelect" class="language-select"></select>
 
     <div class="settings-section-label" data-i18n="settings_accentColor">Accent Color</div>
     <div id="accentSwatches" class="accent-swatches"></div>
+
+    <div class="settings-section-label" data-i18n="settings_subjects">Subjects</div>
+    <button id="openSubjectsBtn" class="primary-btn small secondary-style" data-i18n="settings_manageSubjects">Manage Subjects</button>
 
     <div class="settings-stats">
       <div><span id="statAssignmentsTotal">0</span><small data-i18n="stat_assignments">Assignments</small></div>
@@ -255,6 +268,19 @@
   <!-- Security modal: PIN-gated name/PIN change and account deletion -->
   <div id="securityModal" class="modal-overlay" hidden>
     <div class="modal-card" id="securityCard"></div>
+  </div>
+
+  <!-- Manage Subjects modal -->
+  <div id="subjectsModal" class="modal-overlay" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="detail-title" data-i18n="subjects_modalTitle">Manage Subjects</h3>
+        <button id="closeSubjectsModal" class="icon-btn small" aria-label="Close">&times;</button>
+      </div>
+      <div id="subjectsListArea"></div>
+      <div class="security-divider"></div>
+      <div id="subjectFormArea"></div>
+    </div>
   </div>
 
   <script src="i18n.js"></script>

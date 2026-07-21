@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>StudyTrack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Welcome / greeting slide -->
+  <div id="welcomeScreen" class="welcome-screen">
+    <div class="welcome-card">
+      <img src="assets/wave.svg" class="welcome-icon" alt="" />
+      <h1 id="welcomeGreeting">Welcome!</h1>
+      <p id="welcomeSub">Let's get you organized for the term.</p>
+      <div id="nameEntry" class="name-entry" hidden>
+        <input id="nameInput" placeholder="What's your name?" autocomplete="off" />
+      </div>
+      <button id="welcomeContinueBtn" class="primary-btn">Get Started</button>
+    </div>
+  </div>
+
+  <!-- Main app shell -->
+  <div id="appShell" class="app-shell" hidden>
+    <header class="topbar">
+      <div class="topbar-left">
+        <img src="assets/gradcap.svg" class="logo-icon" alt="" />
+        <span class="app-name">StudyTrack</span>
+      </div>
+      <button id="settingsBtn" class="icon-btn" aria-label="Settings">
+        <img src="assets/gear.svg" alt="" />
+      </button>
+    </header>
+
+    <main class="content">
+      <section id="view-home" class="view active">
+        <h2 class="greeting" id="homeGreeting">Hi there! <img src="assets/wave.svg" class="inline-icon" alt=""></h2>
+        <p class="view-sub" id="homeDate"></p>
+
+        <div class="stat-row">
+          <div class="stat-card assignment-accent">
+            <img src="assets/memo.svg" alt="" />
+            <div>
+              <span class="stat-value" id="statAssignmentsHome">0</span>
+              <span class="stat-label">Assignments due</span>
+            </div>
+          </div>
+          <div class="stat-card exam-accent">
+            <img src="assets/books.svg" alt="" />
+            <div>
+              <span class="stat-value" id="statExamsHome">0</span>
+              <span class="stat-label">Exams coming up</span>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="section-title">Upcoming</h3>
+        <div id="upcomingList" class="item-list"></div>
+      </section>
+
+      <section id="view-calendar" class="view">
+        <div class="calendar-header">
+          <button id="prevMonth" class="icon-btn small">&lsaquo;</button>
+          <h2 id="calendarMonthLabel">Month Year</h2>
+          <button id="nextMonth" class="icon-btn small">&rsaquo;</button>
+        </div>
+        <div class="calendar-legend">
+          <span><i class="dot assignment-dot"></i> Assignment</span>
+          <span><i class="dot exam-dot"></i> Exam</span>
+        </div>
+        <div class="calendar-weekdays">
+          <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+        </div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+      </section>
+
+      <section id="view-assignments" class="view">
+        <h2 class="view-title"><img src="assets/memo.svg" class="inline-icon" alt="">Assignments</h2>
+        <div class="filter-row" id="assignmentFilters">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="pending">Pending</button>
+          <button class="filter-btn" data-filter="completed">Completed</button>
+        </div>
+        <div id="assignmentsList" class="item-list checklist"></div>
+      </section>
+
+      <section id="view-exams" class="view">
+        <h2 class="view-title"><img src="assets/books.svg" class="inline-icon" alt="">Exams</h2>
+        <div class="filter-row" id="examFilters">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="pending">Pending</button>
+          <button class="filter-btn" data-filter="completed">Completed</button>
+        </div>
+        <div id="examsList" class="item-list checklist"></div>
+      </section>
+
+      <section id="view-add-assignment" class="view">
+        <div class="page-header">
+          <button id="backFromAssignment" class="icon-btn small">&larr;</button>
+          <h2 class="view-title"><img src="assets/memo.svg" class="inline-icon" alt="">New Assignment</h2>
+        </div>
+        <form id="assignmentForm" class="add-form">
+          <label>Assignment name
+            <input id="aName" required placeholder="e.g. Essay on Photosynthesis" />
+          </label>
+          <label>Details
+            <textarea id="aDetails" rows="3" placeholder="Any notes about the assignment..."></textarea>
+          </label>
+          <label>Due date
+            <input id="aDueDate" type="date" required />
+          </label>
+          <label>Teacher
+            <input id="aTeacher" required placeholder="e.g. Mr. Smith" />
+          </label>
+          <button type="submit" class="primary-btn assignment-btn">Add Assignment</button>
+        </form>
+      </section>
+
+      <section id="view-add-exam" class="view">
+        <div class="page-header">
+          <button id="backFromExam" class="icon-btn small">&larr;</button>
+          <h2 class="view-title"><img src="assets/books.svg" class="inline-icon" alt="">New Exam</h2>
+        </div>
+        <form id="examForm" class="add-form">
+          <label>Exam / Subject
+            <input id="eName" required placeholder="e.g. Biology Midterm" />
+          </label>
+          <label>Details
+            <textarea id="eDetails" rows="3" placeholder="Topics covered, room number..."></textarea>
+          </label>
+          <label>Date
+            <input id="eDate" type="date" required />
+          </label>
+          <label>Teacher
+            <input id="eTeacher" required placeholder="e.g. Ms. Johnson" />
+          </label>
+          <button type="submit" class="primary-btn exam-btn">Add Exam</button>
+        </form>
+      </section>
+    </main>
+
+    <button id="addFab" class="fab" aria-label="Add">
+      <img src="assets/plus.svg" alt="" />
+    </button>
+
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-view="home">
+        <img src="assets/house.svg" alt="" /><span>Home</span>
+      </button>
+      <button class="nav-btn" data-view="calendar">
+        <img src="assets/calendar.svg" alt="" /><span>Calendar</span>
+      </button>
+      <button class="nav-btn" data-view="assignments">
+        <img src="assets/memo.svg" alt="" /><span>Assignments</span>
+      </button>
+      <button class="nav-btn" data-view="exams">
+        <img src="assets/books.svg" alt="" /><span>Exams</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Add chooser: pick which page to go to -->
+  <div id="addChooser" class="modal-overlay" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="detail-title">What do you want to add?</h3>
+        <button id="closeAddChooser" class="icon-btn small" aria-label="Close">&times;</button>
+      </div>
+      <div class="chooser-options">
+        <button id="chooseAssignmentBtn" class="chooser-option assignment-accent">
+          <img src="assets/memo.svg" alt="" />
+          <span>Add Assignment</span>
+        </button>
+        <button id="chooseExamBtn" class="chooser-option exam-accent">
+          <img src="assets/books.svg" alt="" />
+          <span>Add Exam</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail modal -->
+  <div id="detailModal" class="modal-overlay" hidden>
+    <div class="modal-card" id="detailCard"></div>
+  </div>
+
+  <!-- Day-detail modal (from calendar) -->
+  <div id="dayModal" class="modal-overlay" hidden>
+    <div class="modal-card" id="dayCard"></div>
+  </div>
+
+  <!-- Settings drawer -->
+  <div id="settingsOverlay" class="drawer-overlay" hidden></div>
+  <aside id="settingsDrawer" class="settings-drawer" hidden>
+    <div class="drawer-header">
+      <h2>Settings</h2>
+      <button id="closeSettings" class="icon-btn small" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="account-card">
+      <div class="avatar">🧑‍🎓</div>
+      <div>
+        <div id="settingsName" class="account-name">Student</div>
+        <div class="account-sub">Student Account</div>
+      </div>
+    </div>
+
+    <label class="settings-field">
+      Display name
+      <input id="settingsNameInput" />
+    </label>
+    <button id="saveNameBtn" class="primary-btn small">Save Name</button>
+
+    <div class="settings-stats">
+      <div><span id="statAssignmentsTotal">0</span><small>Assignments</small></div>
+      <div><span id="statExamsTotal">0</span><small>Exams</small></div>
+      <div><span id="statCompletedTotal">0</span><small>Completed</small></div>
+    </div>
+
+    <button id="clearDataBtn" class="danger-btn">Clear All Data</button>
+  </aside>
+
+  <script src="script.js"></script>
+</body>
+</html>

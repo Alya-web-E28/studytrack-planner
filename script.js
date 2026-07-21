@@ -546,8 +546,10 @@ function renderExams() {
 
 function getGradedItems() {
   return [
-    ...state.assignments.filter((a) => a.grade).map((a) => ({ ...a, type: "assignment", when: a.dueDate })),
-    ...state.exams.filter((e) => e.grade).map((e) => ({ ...e, type: "exam", when: e.date })),
+    ...state.assignments
+      .filter((a) => a.completed || a.grade)
+      .map((a) => ({ ...a, type: "assignment", when: a.dueDate })),
+    ...state.exams.filter((e) => e.completed || e.grade).map((e) => ({ ...e, type: "exam", when: e.date })),
   ];
 }
 
@@ -639,7 +641,9 @@ function renderGradesFolderDetail(subjectKey) {
         <div class="item-name">${escapeHtml(item.name)}</div>
         <div class="item-meta">${escapeHtml(item.teacher)} · ${formatPretty(item.when)}</div>
       </div>
-      <div class="grade-value">${escapeHtml(item.grade)}</div>
+      <div class="grade-value ${item.grade ? "" : "grade-value-empty"}">${
+        item.grade ? escapeHtml(item.grade) : escapeHtml(t("grades_noGrade"))
+      }</div>
     </div>
   `
     )

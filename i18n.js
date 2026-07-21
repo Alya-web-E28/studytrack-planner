@@ -13,7 +13,7 @@ const TRANSLATIONS = {
     welcome_subtitle: "Let's get you organized for the term.",
     welcome_createBtn: "Create New Account",
     welcome_loginBtn: "Log In",
-    welcome_namePlaceholder: "First Last",
+    welcome_namePlaceholder: "First and Last Name",
     welcome_continueBtn: "Continue",
     welcome_backLink: "← Back",
     welcome_switchLink: "Not you? Use a different account",
@@ -160,6 +160,7 @@ const TRANSLATIONS = {
     grades_noSubjectFolder: "No Subject",
     grades_gradeCount: "{count} grades",
     grades_gradeCountSingular: "{count} grade",
+    grades_noGrade: "No grade",
   },
 
   ar: {
@@ -314,6 +315,7 @@ const TRANSLATIONS = {
     grades_noSubjectFolder: "بدون مادة",
     grades_gradeCount: "{count} درجة",
     grades_gradeCountSingular: "{count} درجة",
+    grades_noGrade: "لا توجد درجة",
   },
 
   ja: {
@@ -321,7 +323,7 @@ const TRANSLATIONS = {
     welcome_subtitle: "今学期の予定を整理しましょう。",
     welcome_createBtn: "新しいアカウントを作成",
     welcome_loginBtn: "ログイン",
-    welcome_namePlaceholder: "名 姓",
+    welcome_namePlaceholder: "名前と苗字",
     welcome_continueBtn: "続ける",
     welcome_backLink: "← 戻る",
     welcome_switchLink: "別の人ですか？別のアカウントを使う",
@@ -467,6 +469,7 @@ const TRANSLATIONS = {
     grades_noSubjectFolder: "科目なし",
     grades_gradeCount: "{count}件の成績",
     grades_gradeCountSingular: "{count}件の成績",
+    grades_noGrade: "成績なし",
   },
 
   zh: {
@@ -474,7 +477,7 @@ const TRANSLATIONS = {
     welcome_subtitle: "让我们帮你安排好这学期的计划。",
     welcome_createBtn: "创建新账户",
     welcome_loginBtn: "登录",
-    welcome_namePlaceholder: "名 姓",
+    welcome_namePlaceholder: "名和姓",
     welcome_continueBtn: "继续",
     welcome_backLink: "← 返回",
     welcome_switchLink: "不是你？切换到其他账户",
@@ -620,6 +623,7 @@ const TRANSLATIONS = {
     grades_noSubjectFolder: "无科目",
     grades_gradeCount: "{count} 个成绩",
     grades_gradeCountSingular: "{count} 个成绩",
+    grades_noGrade: "暂无成绩",
   },
 
   es: {
@@ -627,7 +631,7 @@ const TRANSLATIONS = {
     welcome_subtitle: "Vamos a organizar tu semestre.",
     welcome_createBtn: "Crear cuenta nueva",
     welcome_loginBtn: "Iniciar sesión",
-    welcome_namePlaceholder: "Nombre Apellido",
+    welcome_namePlaceholder: "Nombre y Apellido",
     welcome_continueBtn: "Continuar",
     welcome_backLink: "← Atrás",
     welcome_switchLink: "¿No eres tú? Usa otra cuenta",
@@ -774,6 +778,7 @@ const TRANSLATIONS = {
     grades_noSubjectFolder: "Sin materia",
     grades_gradeCount: "{count} calificaciones",
     grades_gradeCountSingular: "{count} calificación",
+    grades_noGrade: "Sin calificación",
   },
 
   pt: {
@@ -781,7 +786,7 @@ const TRANSLATIONS = {
     welcome_subtitle: "Vamos organizar o seu semestre.",
     welcome_createBtn: "Criar nova conta",
     welcome_loginBtn: "Entrar",
-    welcome_namePlaceholder: "Nome Sobrenome",
+    welcome_namePlaceholder: "Nome e Sobrenome",
     welcome_continueBtn: "Continuar",
     welcome_backLink: "← Voltar",
     welcome_switchLink: "Não é você? Use outra conta",
@@ -928,6 +933,7 @@ const TRANSLATIONS = {
     grades_noSubjectFolder: "Sem matéria",
     grades_gradeCount: "{count} notas",
     grades_gradeCountSingular: "{count} nota",
+    grades_noGrade: "Sem nota",
   },
 };
 

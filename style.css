@@ -819,6 +819,13 @@ img {
   display: none;
 }
 
+/* These two open from inside the Settings drawer, so they need to sit above it
+   rather than behind it. */
+#securityModal,
+#subjectsModal {
+  z-index: 90;
+}
+
 .modal-card {
   background: var(--panel);
   border-radius: 22px;
@@ -1047,6 +1054,13 @@ img {
   font-weight: 700;
   color: var(--primary);
   flex-shrink: 0;
+}
+
+.grade-value-empty {
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--muted);
 }
 
 .detail-actions {

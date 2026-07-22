@@ -6,13 +6,13 @@
   --muted: #8582a3;
   --border: #e7e4f5;
   --input-bg: #f7f6fd;
-  --primary: #f9714f;
-  --primary-dark: #e2603f;
+  --primary: #ffa552;
+  --primary-dark: #f2903c;
   --assignment: #4f8ef7;
   --assignment-bg: #eaf2ff;
   --exam: #e5384f;
   --exam-bg: #fde2e6;
-  --event: #eab308;
+  --event: #fbbf24;
   --event-bg: #fef9c3;
   --success: #2fb873;
   --success-bg: #e5f8ee;
@@ -30,14 +30,14 @@
     --muted: #a8a3c4;
     --border: #362f52;
     --input-bg: #2c2645;
-    --primary: #ff9270;
-    --primary-dark: #f9714f;
+    --primary: #ffb877;
+    --primary-dark: #ffa552;
     --assignment: #6ba3ff;
     --assignment-bg: rgba(107, 163, 255, 0.15);
     --exam: #ff5c72;
     --exam-bg: rgba(255, 92, 114, 0.15);
-    --event: #facc15;
-    --event-bg: rgba(250, 204, 21, 0.15);
+    --event: #fde047;
+    --event-bg: rgba(253, 224, 71, 0.15);
     --success: #57d495;
     --success-bg: rgba(87, 212, 149, 0.15);
     --danger: #ff7575;
@@ -1505,7 +1505,7 @@ img {
   margin-bottom: 20px;
   flex-wrap: nowrap;
   overflow-x: auto;
-  padding-bottom: 2px;
+  padding-bottom: 12px;
 }
 
 .swatch {

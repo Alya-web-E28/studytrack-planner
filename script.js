@@ -1498,18 +1498,17 @@ securityModal.addEventListener("click", (e) => {
 // ---------- Accent color ----------
 
 const ACCENT_PALETTE = {
-  examOrange: { light: ["#f9714f", "#e2603f"], dark: ["#ff9270", "#f9714f"] },
-  pink: { light: ["#ec4899", "#d6336c"], dark: ["#f472b6", "#ec4899"] },
-  purple: { light: ["#8b5cf6", "#7c3aed"], dark: ["#a78bfa", "#8b5cf6"] },
-  indigo: { light: ["#6366f1", "#4f46e5"], dark: ["#818cf8", "#6366f1"] },
-  teal: { light: ["#0d9488", "#0f766e"], dark: ["#2dd4bf", "#14b8a6"] },
-  green: { light: ["#16a34a", "#15803d"], dark: ["#4ade80", "#22c55e"] },
-  gold: { light: ["#ca8a04", "#a16207"], dark: ["#facc15", "#eab308"] },
+  orange: { light: ["#ffa552", "#f2903c"], dark: ["#ffb877", "#ffa552"] },
+  pink: { light: ["#ff8fab", "#f2718f"], dark: ["#ffaac2", "#ff8fab"] },
+  purple: { light: ["#b28dff", "#9b74f0"], dark: ["#c7aeff", "#b28dff"] },
+  lightBlue: { light: ["#5ec8f2", "#42b0dc"], dark: ["#8ad9ff", "#5ec8f2"] },
+  lightGreen: { light: ["#7bd992", "#5cc078"], dark: ["#9ee6ae", "#7bd992"] },
+  black: { light: ["#2b2b2b", "#161616"], dark: ["#52525b", "#3f3f46"] },
 };
 const ACCENT_STORAGE_KEY = "sp_accentColor";
 
 function applyAccentColor(colorId) {
-  const palette = ACCENT_PALETTE[colorId] || ACCENT_PALETTE.examOrange;
+  const palette = ACCENT_PALETTE[colorId] || ACCENT_PALETTE.orange;
   const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   const [main, pressed] = isDark ? palette.dark : palette.light;
   document.documentElement.style.setProperty("--primary", main);
@@ -1517,7 +1516,7 @@ function applyAccentColor(colorId) {
 }
 
 function loadAccentColor() {
-  return localStorage.getItem(ACCENT_STORAGE_KEY) || "examOrange";
+  return localStorage.getItem(ACCENT_STORAGE_KEY) || "orange";
 }
 
 function saveAccentColorChoice(colorId) {
@@ -1550,7 +1549,8 @@ window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () 
 // ---------- Profile picture picker ----------
 
 const PROFILE_EMOJIS = [
-  "😀", "😎", "🤓", "🥳", "😇", "🤠", "🥸", "🧑‍🎓", "🧑‍💻", "🧑‍🎨",
+  "😀", "😎", "🤓", "🥳", "😇", "🤠", "🥸",
+  "🧑‍🎓", "👩‍🎓", "🧑‍💻", "👩‍💻", "🧑‍🎨", "👩‍🎨",
   "🦄", "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨",
   "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🐦", "🦉",
   "🦋", "🐢", "🐬", "🐳", "🐝", "🐙", "🦖", "🐲", "🌸", "🌵",

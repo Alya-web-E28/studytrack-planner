@@ -12,15 +12,20 @@ function loadJSON(key, fallback) {
   }
 }
 
+const DEFAULT_AVATAR = "🧑‍🎓";
+
 const state = {
   accountId: null,
   name: "",
+  avatar: DEFAULT_AVATAR,
   assignments: [],
   exams: [],
+  events: [],
   subjects: [],
   calendarDate: new Date(),
   assignmentFilter: "all",
   examFilter: "all",
+  eventFilter: "all",
   lastMainView: "home",
   editing: null, // { type: 'assignment'|'exam', id } while editing an existing item
   editingSubjectId: null, // subject currently being edited in the Manage Subjects modal
@@ -39,15 +44,16 @@ function accountDataKey(accountId) {
   return `sp_data_${accountId}`;
 }
 function loadAccountData(accountId) {
-  const raw = loadJSON(accountDataKey(accountId), { assignments: [], exams: [], subjects: [] });
+  const raw = loadJSON(accountDataKey(accountId), { assignments: [], exams: [], events: [], subjects: [] });
   state.assignments = raw.assignments || [];
   state.exams = raw.exams || [];
+  state.events = raw.events || [];
   state.subjects = raw.subjects || [];
 }
 function saveAccountData() {
   localStorage.setItem(
     accountDataKey(state.accountId),
-    JSON.stringify({ assignments: state.assignments, exams: state.exams, subjects: state.subjects })
+    JSON.stringify({ assignments: state.assignments, exams: state.exams, events: state.events, subjects: state.subjects })
   );
 }
 
@@ -138,6 +144,7 @@ const nextMonthBtn = document.getElementById("nextMonth");
 
 const assignmentsList = document.getElementById("assignmentsList");
 const examsList = document.getElementById("examsList");
+const eventsList = document.getElementById("eventsList");
 const gradesList = document.getElementById("gradesList");
 const gradesCount = document.getElementById("gradesCount");
 const gradesFolderHeader = document.getElementById("gradesFolderHeader");
@@ -149,14 +156,19 @@ const addChooser = document.getElementById("addChooser");
 const closeAddChooser = document.getElementById("closeAddChooser");
 const chooseAssignmentBtn = document.getElementById("chooseAssignmentBtn");
 const chooseExamBtn = document.getElementById("chooseExamBtn");
+const chooseEventBtn = document.getElementById("chooseEventBtn");
 const backFromAssignment = document.getElementById("backFromAssignment");
 const backFromExam = document.getElementById("backFromExam");
+const backFromEvent = document.getElementById("backFromEvent");
 const assignmentForm = document.getElementById("assignmentForm");
 const examForm = document.getElementById("examForm");
+const eventForm = document.getElementById("eventForm");
 const assignmentPageTitle = document.getElementById("assignmentPageTitle");
 const examPageTitle = document.getElementById("examPageTitle");
+const eventPageTitle = document.getElementById("eventPageTitle");
 const assignmentSubmitBtn = document.getElementById("assignmentSubmitBtn");
 const examSubmitBtn = document.getElementById("examSubmitBtn");
+const eventSubmitBtn = document.getElementById("eventSubmitBtn");
 
 const detailModal = document.getElementById("detailModal");
 const detailCard = document.getElementById("detailCard");
@@ -168,6 +180,11 @@ const settingsOverlay = document.getElementById("settingsOverlay");
 const settingsDrawer = document.getElementById("settingsDrawer");
 const closeSettings = document.getElementById("closeSettings");
 const settingsName = document.getElementById("settingsName");
+const settingsAvatar = document.getElementById("settingsAvatar");
+const editAvatarBtn = document.getElementById("editAvatarBtn");
+const avatarModal = document.getElementById("avatarModal");
+const avatarGrid = document.getElementById("avatarGrid");
+const closeAvatarModal = document.getElementById("closeAvatarModal");
 const clearDataBtn = document.getElementById("clearDataBtn");
 const deleteAccountBtn = document.getElementById("deleteAccountBtn");
 const openSecurityBtn = document.getElementById("openSecurityBtn");
@@ -180,10 +197,40 @@ const subjectsModal = document.getElementById("subjectsModal");
 const subjectsListArea = document.getElementById("subjectsListArea");
 const subjectFormArea = document.getElementById("subjectFormArea");
 const closeSubjectsModal = document.getElementById("closeSubjectsModal");
+const editSubjectModal = document.getElementById("editSubjectModal");
+const editSubjectFormArea = document.getElementById("editSubjectFormArea");
+const closeEditSubjectModal = document.getElementById("closeEditSubjectModal");
 const logOutBtn = document.getElementById("logOutBtn");
 const statAssignmentsTotal = document.getElementById("statAssignmentsTotal");
 const statExamsTotal = document.getElementById("statExamsTotal");
 const statCompletedTotal = document.getElementById("statCompletedTotal");
+const finalConfirmModal = document.getElementById("finalConfirmModal");
+const finalConfirmCard = document.getElementById("finalConfirmCard");
+
+function openFinalConfirm(message, onConfirm) {
+  finalConfirmCard.innerHTML = `
+    <div class="detail-header">
+      <h3 class="detail-title">${escapeHtml(t("confirm_areYouSure"))}</h3>
+    </div>
+    <p class="auth-sub">${escapeHtml(message)}</p>
+    <div class="detail-actions">
+      <button id="finalConfirmYesBtn" class="danger-btn">${escapeHtml(t("common_confirm"))}</button>
+      <button id="finalConfirmCancelBtn" class="primary-btn small secondary-style">${escapeHtml(t("common_cancel"))}</button>
+    </div>
+  `;
+  document.getElementById("finalConfirmYesBtn").addEventListener("click", () => {
+    finalConfirmModal.hidden = true;
+    onConfirm();
+  });
+  document.getElementById("finalConfirmCancelBtn").addEventListener("click", () => {
+    finalConfirmModal.hidden = true;
+  });
+  finalConfirmModal.hidden = false;
+}
+
+finalConfirmModal.addEventListener("click", (e) => {
+  if (e.target === finalConfirmModal) finalConfirmModal.hidden = true;
+});
 
 // ---------- Auth flow (account creation / login / PIN pad) ----------
 
@@ -389,10 +436,10 @@ authSwitchLink.addEventListener("click", showChoiceStep);
 
 function finalizeCreateAccount(name, pin) {
   const accounts = loadAccounts();
-  const account = { id: uid(), name, nameKey: name.toLowerCase(), pin, createdAt: Date.now() };
+  const account = { id: uid(), name, nameKey: name.toLowerCase(), pin, avatar: DEFAULT_AVATAR, createdAt: Date.now() };
   accounts.push(account);
   saveAccounts(accounts);
-  localStorage.setItem(accountDataKey(account.id), JSON.stringify({ assignments: [], exams: [], subjects: [] }));
+  localStorage.setItem(accountDataKey(account.id), JSON.stringify({ assignments: [], exams: [], events: [], subjects: [] }));
   logIn(account);
 }
 
@@ -400,6 +447,7 @@ function logIn(account) {
   localStorage.setItem(STORAGE_KEYS.lastAccountId, account.id);
   state.accountId = account.id;
   state.name = account.name;
+  state.avatar = account.avatar || DEFAULT_AVATAR;
   state.gradesFolder = null;
   loadAccountData(account.id);
   populateAllSubjectSelects();
@@ -434,17 +482,20 @@ function initAuth() {
 
 // ---------- Navigation ----------
 
-const MAIN_VIEWS = ["home", "calendar", "assignments", "exams", "grades"];
+const MAIN_VIEWS = ["home", "calendar", "assignments", "exams", "events", "grades"];
 
 document.querySelectorAll(".nav-btn").forEach((btn) => {
   btn.addEventListener("click", () => switchView(btn.dataset.view));
 });
+
+const ADD_PAGE_VIEWS = ["add-assignment", "add-exam", "add-event"];
 
 function switchView(name) {
   document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
   document.getElementById(`view-${name}`).classList.add("active");
   document.querySelectorAll(".nav-btn").forEach((b) => b.classList.toggle("active", b.dataset.view === name));
   if (MAIN_VIEWS.includes(name)) state.lastMainView = name;
+  addFab.hidden = ADD_PAGE_VIEWS.includes(name);
 }
 
 // ---------- Home ----------
@@ -477,15 +528,25 @@ function subjectDotHTML(subjectId) {
   return subject ? `<span class="subject-dot" style="background:${subject.color}"></span>` : "";
 }
 
+function typeClassFor(type) {
+  if (type === "exam") return "exam-type";
+  if (type === "event") return "event-type";
+  return "";
+}
+
+function itemMetaText(item) {
+  return item.teacher ? `${escapeHtml(item.teacher)} · ${formatPretty(item.when)}` : formatPretty(item.when);
+}
+
 function itemCardHTML(item) {
-  const typeClass = item.type === "exam" ? "exam-type" : "";
+  const typeClass = typeClassFor(item.type);
   const completedClass = item.completed ? "completed" : "";
   return `
     <div class="item-card ${typeClass} ${completedClass}" data-type="${item.type}" data-id="${item.id}">
       <div class="item-checkbox ${item.completed ? "checked" : ""}" data-checkbox="${item.id}" data-type="${item.type}">${item.completed ? "✓" : ""}</div>
       <div class="item-info">
         <div class="item-name">${subjectDotHTML(item.subject)}${escapeHtml(item.name)}</div>
-        <div class="item-meta">${escapeHtml(item.teacher)} · ${formatPretty(item.when)}</div>
+        <div class="item-meta">${itemMetaText(item)}</div>
       </div>
       <div class="item-badge">${dueBadge(item.when)}</div>
     </div>
@@ -542,6 +603,18 @@ function renderExams() {
   }
   examsList.innerHTML = items.map((e) => itemCardHTML({ ...e, type: "exam", when: e.date })).join("");
   wireItemCards(examsList);
+}
+
+function renderEvents() {
+  const items = filterItems(state.events, state.eventFilter)
+    .slice()
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (items.length === 0) {
+    eventsList.innerHTML = `<div class="item-empty">${escapeHtml(t("events_empty"))}</div>`;
+    return;
+  }
+  eventsList.innerHTML = items.map((e) => itemCardHTML({ ...e, type: "event", when: e.date })).join("");
+  wireItemCards(eventsList);
 }
 
 function getGradedItems() {
@@ -675,9 +748,22 @@ document.getElementById("examFilters").addEventListener("click", (e) => {
   renderExams();
 });
 
+document.getElementById("eventFilters").addEventListener("click", (e) => {
+  const btn = e.target.closest(".filter-btn");
+  if (!btn) return;
+  state.eventFilter = btn.dataset.filter;
+  document.querySelectorAll("#eventFilters .filter-btn").forEach((b) => b.classList.toggle("active", b === btn));
+  renderEvents();
+});
+
+function listForType(type) {
+  if (type === "exam") return state.exams;
+  if (type === "event") return state.events;
+  return state.assignments;
+}
+
 function toggleComplete(type, id) {
-  const list = type === "exam" ? state.exams : state.assignments;
-  const item = list.find((i) => i.id === id);
+  const item = listForType(type).find((i) => i.id === id);
   if (!item) return;
   item.completed = !item.completed;
   saveAccountData();
@@ -687,6 +773,8 @@ function toggleComplete(type, id) {
 function deleteItem(type, id) {
   if (type === "exam") {
     state.exams = state.exams.filter((i) => i.id !== id);
+  } else if (type === "event") {
+    state.events = state.events.filter((i) => i.id !== id);
   } else {
     state.assignments = state.assignments.filter((i) => i.id !== id);
   }
@@ -695,6 +783,12 @@ function deleteItem(type, id) {
 }
 
 // ---------- Calendar ----------
+
+function dotClassFor(type) {
+  if (type === "exam") return "exam-dot";
+  if (type === "event") return "event-dot";
+  return "assignment-dot";
+}
 
 function renderCalendar() {
   const isRtl = getLanguageInfo(getCurrentLanguage()).rtl;
@@ -718,6 +812,9 @@ function renderCalendar() {
   state.exams.forEach((e) => {
     (itemsByDay[e.date] ||= []).push({ ...e, type: "exam" });
   });
+  state.events.forEach((ev) => {
+    (itemsByDay[ev.date] ||= []).push({ ...ev, type: "event" });
+  });
 
   let html = "";
   for (let i = 0; i < startWeekday; i++) html += `<div class="cal-day empty"></div>`;
@@ -727,7 +824,7 @@ function renderCalendar() {
     const dayItems = itemsByDay[key] || [];
     const dots = dayItems
       .slice(0, 4)
-      .map((it) => `<span class="dot ${it.type === "exam" ? "exam-dot" : "assignment-dot"}"></span>`)
+      .map((it) => `<span class="dot ${dotClassFor(it.type)}"></span>`)
       .join("");
     html += `
       <div class="cal-day ${key === today ? "today" : ""}" data-date="${key}">
@@ -758,10 +855,10 @@ function openDayModal(key, items) {
         .map(
           (it) => `
         <div class="day-list-item" data-type="${it.type}" data-id="${it.id}">
-          <span class="dot ${it.type === "exam" ? "exam-dot" : "assignment-dot"}"></span>
+          <span class="dot ${dotClassFor(it.type)}"></span>
           <div class="item-info">
             <div class="item-name">${escapeHtml(it.name)}</div>
-            <div class="item-meta">${escapeHtml(it.teacher)}</div>
+            <div class="item-meta">${escapeHtml(it.teacher || "")}</div>
           </div>
         </div>
       `
@@ -818,6 +915,7 @@ function populateSubjectSelect(selectEl, selectedId) {
 function populateAllSubjectSelects() {
   populateSubjectSelect(document.getElementById("aSubject"), document.getElementById("aSubject").value);
   populateSubjectSelect(document.getElementById("eSubject"), document.getElementById("eSubject").value);
+  populateSubjectSelect(document.getElementById("evSubject"), document.getElementById("evSubject").value);
 }
 
 // ---------- Add chooser + dedicated add pages ----------
@@ -848,6 +946,15 @@ chooseExamBtn.addEventListener("click", () => {
   examSubmitBtn.textContent = t("btn_addExam");
   switchView("add-exam");
 });
+chooseEventBtn.addEventListener("click", () => {
+  addChooser.hidden = true;
+  state.editing = null;
+  eventForm.reset();
+  populateSubjectSelect(document.getElementById("evSubject"), "");
+  eventPageTitle.textContent = t("addEvent_newTitle");
+  eventSubmitBtn.textContent = t("btn_addEvent");
+  switchView("add-event");
+});
 
 backFromAssignment.addEventListener("click", () => {
   state.editing = null;
@@ -857,10 +964,13 @@ backFromExam.addEventListener("click", () => {
   state.editing = null;
   switchView(state.lastMainView);
 });
+backFromEvent.addEventListener("click", () => {
+  state.editing = null;
+  switchView(state.lastMainView);
+});
 
 function openEditForm(type, id) {
-  const list = type === "exam" ? state.exams : state.assignments;
-  const item = list.find((i) => i.id === id);
+  const item = listForType(type).find((i) => i.id === id);
   if (!item) return;
   state.editing = { type, id };
 
@@ -873,7 +983,7 @@ function openEditForm(type, id) {
     assignmentPageTitle.textContent = t("addAssignment_editTitle");
     assignmentSubmitBtn.textContent = t("btn_saveChanges");
     switchView("add-assignment");
-  } else {
+  } else if (type === "exam") {
     document.getElementById("eName").value = item.name;
     document.getElementById("eDetails").value = item.details;
     document.getElementById("eDate").value = item.date;
@@ -882,6 +992,14 @@ function openEditForm(type, id) {
     examPageTitle.textContent = t("addExam_editTitle");
     examSubmitBtn.textContent = t("btn_saveChanges");
     switchView("add-exam");
+  } else {
+    document.getElementById("evName").value = item.name;
+    document.getElementById("evDetails").value = item.details;
+    document.getElementById("evDate").value = item.date;
+    populateSubjectSelect(document.getElementById("evSubject"), item.subject || "");
+    eventPageTitle.textContent = t("addEvent_editTitle");
+    eventSubmitBtn.textContent = t("btn_saveChanges");
+    switchView("add-event");
   }
 }
 
@@ -933,34 +1051,57 @@ examForm.addEventListener("submit", (e) => {
   switchView("exams");
 });
 
+eventForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const values = {
+    name: document.getElementById("evName").value.trim(),
+    details: document.getElementById("evDetails").value.trim(),
+    date: document.getElementById("evDate").value,
+    subject: document.getElementById("evSubject").value,
+  };
+
+  if (state.editing && state.editing.type === "event") {
+    const item = state.events.find((i) => i.id === state.editing.id);
+    Object.assign(item, values);
+  } else {
+    state.events.push({ id: uid(), ...values, completed: false });
+  }
+
+  state.editing = null;
+  saveAccountData();
+  eventForm.reset();
+  renderAll();
+  switchView("events");
+});
+
 // ---------- Detail modal ----------
 
-function openDetail(type, id) {
-  const list = type === "exam" ? state.exams : state.assignments;
-  const item = list.find((i) => i.id === id);
-  if (!item) return;
-  const when = type === "exam" ? item.date : item.dueDate;
-  const typeLabel = type === "exam" ? t("type_exam") : t("type_assignment");
+const TYPE_LABEL_KEYS = {
+  assignment: { type: "type_assignment", edit: "detail_editAssignment", delete: "detail_deleteAssignment", deleteConfirm: "detail_deleteConfirmAssignment" },
+  exam: { type: "type_exam", edit: "detail_editExam", delete: "detail_deleteExam", deleteConfirm: "detail_deleteConfirmExam" },
+  event: { type: "type_event", edit: "detail_editEvent", delete: "detail_deleteEvent", deleteConfirm: "detail_deleteConfirmEvent" },
+};
 
-  renderDetailCard(type, item, when, typeLabel);
+function openDetail(type, id) {
+  const item = listForType(type).find((i) => i.id === id);
+  if (!item) return;
+  const when = type === "exam" || type === "event" ? item.date : item.dueDate;
+
+  renderDetailCard(type, item, when);
   detailModal.hidden = false;
 }
 
-function renderDetailCard(type, item, when, typeLabel) {
-  const editLabel = type === "exam" ? t("detail_editExam") : t("detail_editAssignment");
-  const deleteLabel = type === "exam" ? t("detail_deleteExam") : t("detail_deleteAssignment");
-  const deleteConfirmLabel = type === "exam" ? t("detail_deleteConfirmExam") : t("detail_deleteConfirmAssignment");
-
-  detailCard.innerHTML = `
-    <div class="detail-header">
-      <h3 class="detail-title">${subjectDotHTML(item.subject)}${escapeHtml(item.name)}</h3>
-      <span class="detail-badge ${type === "exam" ? "exam-type" : ""} ${item.completed ? "completed-type" : ""}">
-        ${item.completed ? escapeHtml(t("badge_completed")) : escapeHtml(typeLabel)}
-      </span>
-    </div>
-    <div class="detail-meta">👩‍🏫 ${escapeHtml(item.teacher) || "—"}</div>
-    <div class="detail-meta">📅 ${formatPretty(when)} · ${escapeHtml(dueBadge(when))}</div>
-    <div class="detail-details">${escapeHtml(item.details) || escapeHtml(t("detail_noDetails"))}</div>
+function renderDetailCard(type, item, when) {
+  const labels = TYPE_LABEL_KEYS[type];
+  const typeLabel = t(labels.type);
+  const editLabel = t(labels.edit);
+  const deleteLabel = t(labels.delete);
+  const deleteConfirmLabel = t(labels.deleteConfirm);
+  const teacherRow = item.teacher ? `<div class="detail-meta">👩‍🏫 ${escapeHtml(item.teacher)}</div>` : "";
+  const gradeBlock =
+    type === "event"
+      ? ""
+      : `
     <div class="detail-grade">
       <label for="detailGradeInput">${escapeHtml(t("detail_grade"))} <span class="optional-tag">${escapeHtml(t("detail_optional"))}</span></label>
       <div class="grade-input-row">
@@ -968,6 +1109,19 @@ function renderDetailCard(type, item, when, typeLabel) {
         <button id="detailGradeSaveBtn" class="primary-btn small secondary-style">${escapeHtml(t("detail_save"))}</button>
       </div>
     </div>
+  `;
+
+  detailCard.innerHTML = `
+    <div class="detail-header">
+      <h3 class="detail-title">${subjectDotHTML(item.subject)}${escapeHtml(item.name)}</h3>
+      <span class="detail-badge ${typeClassFor(type)} ${item.completed ? "completed-type" : ""}">
+        ${item.completed ? escapeHtml(t("badge_completed")) : escapeHtml(typeLabel)}
+      </span>
+    </div>
+    ${teacherRow}
+    <div class="detail-meta">📅 ${formatPretty(when)} · ${escapeHtml(dueBadge(when))}</div>
+    <div class="detail-details">${escapeHtml(item.details) || escapeHtml(t("detail_noDetails"))}</div>
+    ${gradeBlock}
     <div class="detail-actions">
       <button id="detailEditBtn" class="primary-btn small secondary-style">${escapeHtml(editLabel)}</button>
       <button id="detailCompleteBtn" class="${item.completed ? "primary-btn small" : "success-btn"}">
@@ -983,17 +1137,19 @@ function renderDetailCard(type, item, when, typeLabel) {
     openEditForm(type, item.id);
   });
 
-  document.getElementById("detailGradeSaveBtn").addEventListener("click", () => {
-    item.grade = document.getElementById("detailGradeInput").value.trim();
-    saveAccountData();
-    renderAll();
-    const btn = document.getElementById("detailGradeSaveBtn");
-    const original = btn.textContent;
-    btn.textContent = t("detail_saved");
-    setTimeout(() => {
-      if (document.body.contains(btn)) btn.textContent = original;
-    }, 1200);
-  });
+  const gradeSaveBtn = document.getElementById("detailGradeSaveBtn");
+  if (gradeSaveBtn) {
+    gradeSaveBtn.addEventListener("click", () => {
+      item.grade = document.getElementById("detailGradeInput").value.trim();
+      saveAccountData();
+      renderAll();
+      const original = gradeSaveBtn.textContent;
+      gradeSaveBtn.textContent = t("detail_saved");
+      setTimeout(() => {
+        if (document.body.contains(gradeSaveBtn)) gradeSaveBtn.textContent = original;
+      }, 1200);
+    });
+  }
 
   document.getElementById("detailCompleteBtn").addEventListener("click", () => {
     toggleComplete(type, item.id);
@@ -1030,6 +1186,7 @@ dayModal.addEventListener("click", (e) => {
 
 settingsBtn.addEventListener("click", () => {
   settingsName.textContent = state.name || "Student";
+  settingsAvatar.textContent = state.avatar || DEFAULT_AVATAR;
   statAssignmentsTotal.textContent = state.assignments.length;
   statExamsTotal.textContent = state.exams.length;
   statCompletedTotal.textContent =
@@ -1065,12 +1222,15 @@ clearDataBtn.addEventListener("click", () => {
   `;
   clearDataBtn.insertAdjacentElement("afterend", row);
   document.getElementById("clearYes").addEventListener("click", () => {
-    state.assignments = [];
-    state.exams = [];
-    saveAccountData();
     row.remove();
-    renderAll();
-    settingsBtn.click();
+    openFinalConfirm(t("confirm_clearDataFinal"), () => {
+      state.assignments = [];
+      state.exams = [];
+      state.events = [];
+      saveAccountData();
+      renderAll();
+      settingsBtn.click();
+    });
   });
   document.getElementById("clearNo").addEventListener("click", () => row.remove());
 });
@@ -1314,14 +1474,16 @@ function renderSecurityDeleteStep() {
       </div>
     `;
     document.getElementById("finalDeleteYes").addEventListener("click", () => {
-      const accounts = loadAccounts().filter((a) => a.id !== state.accountId);
-      saveAccounts(accounts);
-      localStorage.removeItem(accountDataKey(state.accountId));
-      localStorage.removeItem(STORAGE_KEYS.lastAccountId);
-      closeSecurityModal();
-      closeSettingsDrawer();
-      showWelcomeScreen();
-      initAuth();
+      openFinalConfirm(t("confirm_deleteAccountFinal"), () => {
+        const accounts = loadAccounts().filter((a) => a.id !== state.accountId);
+        saveAccounts(accounts);
+        localStorage.removeItem(accountDataKey(state.accountId));
+        localStorage.removeItem(STORAGE_KEYS.lastAccountId);
+        closeSecurityModal();
+        closeSettingsDrawer();
+        showWelcomeScreen();
+        initAuth();
+      });
     });
     document.getElementById("finalDeleteNo").addEventListener("click", () => (slot.innerHTML = ""));
   });
@@ -1336,17 +1498,18 @@ securityModal.addEventListener("click", (e) => {
 // ---------- Accent color ----------
 
 const ACCENT_PALETTE = {
-  red: { light: ["#e0393f", "#c22a30"], dark: ["#ff6b6b", "#e35353"] },
+  examOrange: { light: ["#f9714f", "#e2603f"], dark: ["#ff9270", "#f9714f"] },
   pink: { light: ["#ec4899", "#d6336c"], dark: ["#f472b6", "#ec4899"] },
   purple: { light: ["#8b5cf6", "#7c3aed"], dark: ["#a78bfa", "#8b5cf6"] },
   indigo: { light: ["#6366f1", "#4f46e5"], dark: ["#818cf8", "#6366f1"] },
   teal: { light: ["#0d9488", "#0f766e"], dark: ["#2dd4bf", "#14b8a6"] },
+  green: { light: ["#16a34a", "#15803d"], dark: ["#4ade80", "#22c55e"] },
   gold: { light: ["#ca8a04", "#a16207"], dark: ["#facc15", "#eab308"] },
 };
 const ACCENT_STORAGE_KEY = "sp_accentColor";
 
 function applyAccentColor(colorId) {
-  const palette = ACCENT_PALETTE[colorId] || ACCENT_PALETTE.red;
+  const palette = ACCENT_PALETTE[colorId] || ACCENT_PALETTE.examOrange;
   const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   const [main, pressed] = isDark ? palette.dark : palette.light;
   document.documentElement.style.setProperty("--primary", main);
@@ -1354,7 +1517,7 @@ function applyAccentColor(colorId) {
 }
 
 function loadAccentColor() {
-  return localStorage.getItem(ACCENT_STORAGE_KEY) || "red";
+  return localStorage.getItem(ACCENT_STORAGE_KEY) || "examOrange";
 }
 
 function saveAccentColorChoice(colorId) {
@@ -1384,6 +1547,41 @@ applyAccentColor(loadAccentColor());
 renderAccentSwatches();
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => applyAccentColor(loadAccentColor()));
 
+// ---------- Profile picture picker ----------
+
+const PROFILE_EMOJIS = [
+  "😀", "😎", "🤓", "🥳", "😇", "🤠", "🥸", "🧑‍🎓", "🧑‍💻", "🧑‍🎨",
+  "🦄", "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨",
+  "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🐦", "🦉",
+  "🦋", "🐢", "🐬", "🐳", "🐝", "🐙", "🦖", "🐲", "🌸", "🌵",
+  "🍀", "⭐", "🌈", "🔥", "⚡", "🎨", "🎮", "🎧", "📚", "⚽",
+];
+
+function openAvatarModal() {
+  avatarGrid.innerHTML = PROFILE_EMOJIS.map(
+    (emoji) => `<button type="button" class="emoji-option${emoji === state.avatar ? " selected" : ""}" data-emoji="${emoji}">${emoji}</button>`
+  ).join("");
+  avatarGrid.querySelectorAll(".emoji-option").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const emoji = btn.dataset.emoji;
+      const accounts = loadAccounts();
+      const acc = accounts.find((a) => a.id === state.accountId);
+      acc.avatar = emoji;
+      saveAccounts(accounts);
+      state.avatar = emoji;
+      settingsAvatar.textContent = emoji;
+      avatarModal.hidden = true;
+    });
+  });
+  avatarModal.hidden = false;
+}
+
+editAvatarBtn.addEventListener("click", openAvatarModal);
+closeAvatarModal.addEventListener("click", () => (avatarModal.hidden = true));
+avatarModal.addEventListener("click", (e) => {
+  if (e.target === avatarModal) avatarModal.hidden = true;
+});
+
 // ---------- Manage Subjects modal ----------
 
 function renderSubjectsList() {
@@ -1411,10 +1609,7 @@ function renderSubjectsList() {
   `;
 
   subjectsListArea.querySelectorAll("[data-edit]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      state.editingSubjectId = btn.dataset.edit;
-      renderSubjectForm();
-    });
+    btn.addEventListener("click", () => openEditSubjectModal(btn.dataset.edit));
   });
   subjectsListArea.querySelectorAll("[data-delete]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -1437,18 +1632,16 @@ function renderSubjectsList() {
 }
 
 function renderSubjectForm() {
-  const editing = state.editingSubjectId ? getSubjectById(state.editingSubjectId) : null;
-  const nameValue = editing ? editing.name : "";
-  let chosenColor = editing ? editing.color : SUBJECT_COLORS[0];
+  let chosenColor = SUBJECT_COLORS[0];
 
   subjectFormArea.innerHTML = `
     <div id="subjectFormError" class="auth-error" hidden></div>
     <label class="settings-field">${escapeHtml(t("subjects_nameLabel"))}
-      <input id="subjectNameInput" placeholder="${escapeHtml(t("subjects_namePlaceholder"))}" value="${escapeHtml(nameValue)}" />
+      <input id="subjectNameInput" placeholder="${escapeHtml(t("subjects_namePlaceholder"))}" value="" />
     </label>
     <div class="settings-section-label">${escapeHtml(t("subjects_colorLabel"))}</div>
     <div id="subjectColorSwatches" class="accent-swatches"></div>
-    <button type="button" id="subjectSaveBtn" class="primary-btn small">${escapeHtml(editing ? t("subjects_saveBtn") : t("subjects_addBtn"))}</button>
+    <button type="button" id="subjectSaveBtn" class="primary-btn small">${escapeHtml(t("subjects_addBtn"))}</button>
   `;
 
   const swatchWrap = document.getElementById("subjectColorSwatches");
@@ -1474,29 +1667,99 @@ function renderSubjectForm() {
       return;
     }
     const nameKey = name.toLowerCase();
-    const taken = state.subjects.some((s) => s.nameKey === nameKey && s.id !== state.editingSubjectId);
+    const taken = state.subjects.some((s) => s.nameKey === nameKey);
     if (taken) {
       errEl.textContent = t("subjects_nameTaken");
       errEl.hidden = false;
       return;
     }
 
-    if (state.editingSubjectId) {
-      const subject = getSubjectById(state.editingSubjectId);
-      subject.name = name;
-      subject.nameKey = nameKey;
-      subject.color = chosenColor;
-    } else {
-      state.subjects.push({ id: uid(), name, nameKey, color: chosenColor });
-    }
+    state.subjects.push({ id: uid(), name, nameKey, color: chosenColor });
     saveAccountData();
-    state.editingSubjectId = null;
     populateAllSubjectSelects();
     renderGrades();
     renderSubjectsList();
     renderSubjectForm();
   });
 }
+
+function openEditSubjectModal(id) {
+  state.editingSubjectId = id;
+  const subject = getSubjectById(id);
+  if (!subject) return;
+  let chosenColor = subject.color;
+
+  editSubjectFormArea.innerHTML = `
+    <div id="editSubjectFormError" class="auth-error" hidden></div>
+    <label class="settings-field">${escapeHtml(t("subjects_nameLabel"))}
+      <input id="editSubjectNameInput" placeholder="${escapeHtml(t("subjects_namePlaceholder"))}" value="${escapeHtml(subject.name)}" />
+    </label>
+    <div class="settings-section-label">${escapeHtml(t("subjects_colorLabel"))}</div>
+    <div id="editSubjectColorSwatches" class="accent-swatches"></div>
+    <div class="detail-actions">
+      <button type="button" id="editSubjectSaveBtn" class="primary-btn small">${escapeHtml(t("subjects_saveBtn"))}</button>
+      <button type="button" id="editSubjectCancelBtn" class="primary-btn small secondary-style">${escapeHtml(t("common_cancel"))}</button>
+    </div>
+  `;
+
+  const swatchWrap = document.getElementById("editSubjectColorSwatches");
+  SUBJECT_COLORS.forEach((color) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "swatch" + (color === chosenColor ? " selected" : "");
+    btn.style.background = color;
+    btn.addEventListener("click", () => {
+      chosenColor = color;
+      swatchWrap.querySelectorAll(".swatch").forEach((s) => s.classList.remove("selected"));
+      btn.classList.add("selected");
+    });
+    swatchWrap.appendChild(btn);
+  });
+
+  document.getElementById("editSubjectSaveBtn").addEventListener("click", () => {
+    const name = document.getElementById("editSubjectNameInput").value.trim();
+    const errEl = document.getElementById("editSubjectFormError");
+    if (!name) {
+      errEl.textContent = t("subjects_nameRequired");
+      errEl.hidden = false;
+      return;
+    }
+    const nameKey = name.toLowerCase();
+    const taken = state.subjects.some((s) => s.nameKey === nameKey && s.id !== id);
+    if (taken) {
+      errEl.textContent = t("subjects_nameTaken");
+      errEl.hidden = false;
+      return;
+    }
+    subject.name = name;
+    subject.nameKey = nameKey;
+    subject.color = chosenColor;
+    saveAccountData();
+    state.editingSubjectId = null;
+    populateAllSubjectSelects();
+    renderGrades();
+    renderSubjectsList();
+    editSubjectModal.hidden = true;
+  });
+
+  document.getElementById("editSubjectCancelBtn").addEventListener("click", () => {
+    state.editingSubjectId = null;
+    editSubjectModal.hidden = true;
+  });
+
+  editSubjectModal.hidden = false;
+}
+
+closeEditSubjectModal.addEventListener("click", () => {
+  state.editingSubjectId = null;
+  editSubjectModal.hidden = true;
+});
+editSubjectModal.addEventListener("click", (e) => {
+  if (e.target === editSubjectModal) {
+    state.editingSubjectId = null;
+    editSubjectModal.hidden = true;
+  }
+});
 
 function deleteSubject(id) {
   state.subjects = state.subjects.filter((s) => s.id !== id);
@@ -1539,6 +1802,7 @@ function updateDirectionalArrows() {
   const backArrow = isRtl ? "&rarr;" : "&larr;";
   backFromAssignment.innerHTML = backArrow;
   backFromExam.innerHTML = backArrow;
+  backFromEvent.innerHTML = backArrow;
 }
 
 function refreshAfterLanguageChange() {
@@ -1565,6 +1829,7 @@ function renderAll() {
   renderCalendar();
   renderAssignments();
   renderExams();
+  renderEvents();
   renderGrades();
 }
 

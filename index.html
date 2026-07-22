@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>StudyTrack</title>
+<title>Study Track</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -45,7 +45,7 @@
     <header class="topbar">
       <div class="topbar-left">
         <img src="assets/gradcap.svg" class="logo-icon" alt="" />
-        <span class="app-name">StudyTrack</span>
+        <span class="app-name">Study Track</span>
       </div>
       <button id="settingsBtn" class="icon-btn" aria-label="Settings">
         <img src="assets/gear.svg" alt="" />
@@ -87,6 +87,7 @@
         <div class="calendar-legend">
           <span><i class="dot assignment-dot"></i> <span data-i18n="calendar_legendAssignment">Assignment</span></span>
           <span><i class="dot exam-dot"></i> <span data-i18n="calendar_legendExam">Exam</span></span>
+          <span><i class="dot event-dot"></i> <span data-i18n="calendar_legendEvent">Event</span></span>
         </div>
         <div class="calendar-weekdays">
           <span data-i18n="weekday_mo">Mo</span><span data-i18n="weekday_tu">Tu</span><span data-i18n="weekday_we">We</span><span data-i18n="weekday_th">Th</span><span data-i18n="weekday_fr">Fr</span><span data-i18n="weekday_sa">Sa</span><span data-i18n="weekday_su">Su</span>
@@ -112,6 +113,16 @@
           <button class="filter-btn" data-filter="completed" data-i18n="filter_completed">Completed</button>
         </div>
         <div id="examsList" class="item-list checklist"></div>
+      </section>
+
+      <section id="view-events" class="view">
+        <h2 class="view-title"><img src="assets/party.svg" class="inline-icon" alt=""><span data-i18n="events_title">Events</span></h2>
+        <div class="filter-row" id="eventFilters">
+          <button class="filter-btn active" data-filter="all" data-i18n="filter_all">All</button>
+          <button class="filter-btn" data-filter="pending" data-i18n="filter_pending">Pending</button>
+          <button class="filter-btn" data-filter="completed" data-i18n="filter_completed">Completed</button>
+        </div>
+        <div id="eventsList" class="item-list checklist"></div>
       </section>
 
       <section id="view-grades" class="view">
@@ -173,6 +184,28 @@
           <button type="submit" id="examSubmitBtn" class="primary-btn exam-btn" data-i18n="btn_addExam">Add Exam</button>
         </form>
       </section>
+
+      <section id="view-add-event" class="view">
+        <div class="page-header">
+          <button id="backFromEvent" class="icon-btn small">&larr;</button>
+          <h2 class="view-title"><img src="assets/party.svg" class="inline-icon" alt=""><span id="eventPageTitle" data-i18n="addEvent_newTitle">New Event</span></h2>
+        </div>
+        <form id="eventForm" class="add-form">
+          <label><span data-i18n="field_eventName">Event name</span>
+            <input id="evName" required data-i18n-placeholder="field_eventNamePlaceholder" placeholder="e.g. Science Fair" />
+          </label>
+          <label><span data-i18n="field_details">Details</span>
+            <textarea id="evDetails" rows="3" data-i18n-placeholder="field_detailsPlaceholderEvent" placeholder="Any notes about the event..."></textarea>
+          </label>
+          <label><span data-i18n="field_eventDate">Event date</span>
+            <input id="evDate" type="date" required />
+          </label>
+          <label><span data-i18n="field_subject">Subject</span>
+            <select id="evSubject"></select>
+          </label>
+          <button type="submit" id="eventSubmitBtn" class="primary-btn event-btn" data-i18n="btn_addEvent">Add Event</button>
+        </form>
+      </section>
     </main>
 
     <button id="addFab" class="fab" aria-label="Add">
@@ -191,6 +224,9 @@
       </button>
       <button class="nav-btn" data-view="exams">
         <img src="assets/books.svg" alt="" /><span data-i18n="nav_exams">Exams</span>
+      </button>
+      <button class="nav-btn" data-view="events">
+        <img src="assets/party.svg" alt="" /><span data-i18n="nav_events">Events</span>
       </button>
       <button class="nav-btn" data-view="grades">
         <img src="assets/hundred.svg" alt="" /><span data-i18n="nav_grades">Grades</span>
@@ -213,6 +249,10 @@
         <button id="chooseExamBtn" class="chooser-option exam-accent">
           <img src="assets/books.svg" alt="" />
           <span data-i18n="chooser_addExam">Add Exam</span>
+        </button>
+        <button id="chooseEventBtn" class="chooser-option event-accent">
+          <img src="assets/party.svg" alt="" />
+          <span data-i18n="chooser_addEvent">Add Event</span>
         </button>
       </div>
     </div>
@@ -237,7 +277,10 @@
     </div>
 
     <div class="account-card">
-      <div class="avatar">🧑‍🎓</div>
+      <div class="avatar-wrap">
+        <div id="settingsAvatar" class="avatar">🧑‍🎓</div>
+        <button id="editAvatarBtn" class="avatar-edit-btn" aria-label="Change profile picture">✏️</button>
+      </div>
       <div>
         <div id="settingsName" class="account-name">Student</div>
         <div class="account-sub" data-i18n="settings_studentAccount">Student Account</div>
@@ -260,14 +303,30 @@
     </div>
 
     <button id="openSecurityBtn" class="primary-btn small secondary-style" data-i18n="settings_changeNamePin">Change Name / PIN</button>
+    <button id="logOutBtn" class="primary-btn small logout-btn" data-i18n="settings_logout">Switch Account / Log Out</button>
     <button id="clearDataBtn" class="danger-btn" data-i18n="settings_clearData">Clear All Data</button>
     <button id="deleteAccountBtn" class="danger-btn" data-i18n="settings_deleteAccount">Delete Account</button>
-    <button id="logOutBtn" class="primary-btn small logout-btn" data-i18n="settings_logout">Switch Account / Log Out</button>
   </aside>
 
   <!-- Security modal: PIN-gated name/PIN change and account deletion -->
   <div id="securityModal" class="modal-overlay" hidden>
     <div class="modal-card" id="securityCard"></div>
+  </div>
+
+  <!-- Final confirmation modal: second verification for destructive actions -->
+  <div id="finalConfirmModal" class="modal-overlay" hidden>
+    <div class="modal-card" id="finalConfirmCard"></div>
+  </div>
+
+  <!-- Profile picture picker modal -->
+  <div id="avatarModal" class="modal-overlay" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="detail-title" data-i18n="profile_modalTitle">Choose a Profile Picture</h3>
+        <button id="closeAvatarModal" class="icon-btn small" aria-label="Close">&times;</button>
+      </div>
+      <div id="avatarGrid" class="emoji-grid"></div>
+    </div>
   </div>
 
   <!-- Manage Subjects modal -->
@@ -280,6 +339,17 @@
       <div id="subjectsListArea"></div>
       <div class="security-divider"></div>
       <div id="subjectFormArea"></div>
+    </div>
+  </div>
+
+  <!-- Edit Subject modal: overlaps the Manage Subjects modal -->
+  <div id="editSubjectModal" class="modal-overlay" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="detail-title" data-i18n="subjects_editModalTitle">Edit Subject</h3>
+        <button id="closeEditSubjectModal" class="icon-btn small" aria-label="Close">&times;</button>
+      </div>
+      <div id="editSubjectFormArea"></div>
     </div>
   </div>
 

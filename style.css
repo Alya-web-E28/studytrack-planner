@@ -6,12 +6,14 @@
   --muted: #8582a3;
   --border: #e7e4f5;
   --input-bg: #f7f6fd;
-  --primary: #e0393f;
-  --primary-dark: #c22a30;
+  --primary: #f9714f;
+  --primary-dark: #e2603f;
   --assignment: #4f8ef7;
   --assignment-bg: #eaf2ff;
-  --exam: #f9714f;
-  --exam-bg: #ffece5;
+  --exam: #e5384f;
+  --exam-bg: #fde2e6;
+  --event: #eab308;
+  --event-bg: #fef9c3;
   --success: #2fb873;
   --success-bg: #e5f8ee;
   --danger: #ef5757;
@@ -28,12 +30,14 @@
     --muted: #a8a3c4;
     --border: #362f52;
     --input-bg: #2c2645;
-    --primary: #ff6b6b;
-    --primary-dark: #e35353;
+    --primary: #ff9270;
+    --primary-dark: #f9714f;
     --assignment: #6ba3ff;
     --assignment-bg: rgba(107, 163, 255, 0.15);
-    --exam: #ff9270;
-    --exam-bg: rgba(255, 146, 112, 0.15);
+    --exam: #ff5c72;
+    --exam-bg: rgba(255, 92, 114, 0.15);
+    --event: #facc15;
+    --event-bg: rgba(250, 204, 21, 0.15);
     --success: #57d495;
     --success-bg: rgba(87, 212, 149, 0.15);
     --danger: #ff7575;
@@ -309,6 +313,11 @@ img {
   background: var(--assignment);
 }
 
+.primary-btn.event-btn {
+  background: var(--event);
+  color: var(--text);
+}
+
 .danger-btn {
   background: var(--danger-bg);
   color: var(--danger);
@@ -542,6 +551,14 @@ img {
   background: var(--exam-bg);
 }
 
+.item-card.event-type {
+  border-inline-start-color: var(--event);
+}
+
+.item-card.event-type:hover {
+  background: var(--event-bg);
+}
+
 .item-card.completed {
   border-inline-start-color: var(--success);
   background: var(--success-bg);
@@ -615,6 +632,10 @@ img {
   background: var(--exam);
 }
 
+.item-card.event-type .item-badge {
+  background: var(--event);
+}
+
 .item-card.completed .item-badge {
   background: var(--success);
 }
@@ -685,6 +706,10 @@ img {
 
 .exam-dot {
   background: var(--exam);
+}
+
+.event-dot {
+  background: var(--event);
 }
 
 .calendar-weekdays {
@@ -768,6 +793,10 @@ img {
   filter: brightness(0) invert(1);
 }
 
+.fab[hidden] {
+  display: none;
+}
+
 .bottom-nav {
   display: flex;
   border-top: 1px solid var(--border);
@@ -823,8 +852,14 @@ img {
 /* These two open from inside the Settings drawer, so they need to sit above it
    rather than behind it. */
 #securityModal,
-#subjectsModal {
+#subjectsModal,
+#avatarModal {
   z-index: 90;
+}
+
+#finalConfirmModal,
+#editSubjectModal {
+  z-index: 95;
 }
 
 .modal-card {
@@ -869,6 +904,10 @@ img {
 
 .chooser-option.exam-accent {
   background: var(--exam-bg);
+}
+
+.chooser-option.event-accent {
+  background: var(--event-bg);
 }
 
 .chooser-option:hover {
@@ -959,6 +998,10 @@ img {
 
 .detail-badge.exam-type {
   background: var(--exam);
+}
+
+.detail-badge.event-type {
+  background: var(--event);
 }
 
 .detail-badge.completed-type {
@@ -1175,6 +1218,11 @@ img {
   margin-bottom: 18px;
 }
 
+.avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
 .avatar {
   width: 46px;
   height: 46px;
@@ -1184,6 +1232,61 @@ img {
   align-items: center;
   justify-content: center;
   font-size: 1.4rem;
+}
+
+.avatar-edit-btn {
+  position: absolute;
+  bottom: -3px;
+  inset-inline-end: -3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 2px solid var(--panel);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  font-size: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.avatar-edit-btn:hover {
+  background: var(--border);
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.emoji-option {
+  aspect-ratio: 1 / 1;
+  border: none;
+  border-radius: 12px;
+  background: var(--input-bg);
+  font-size: 1.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.12s ease, transform 0.08s ease;
+}
+
+.emoji-option:hover {
+  background: var(--border);
+}
+
+.emoji-option.selected {
+  background: var(--primary);
+}
+
+.emoji-option:active {
+  transform: scale(0.92);
 }
 
 .account-name {
@@ -1241,7 +1344,6 @@ img {
 }
 
 .logout-btn {
-  margin-top: 10px;
   background: var(--input-bg);
   color: var(--text);
   border: 1px solid var(--border);
@@ -1367,6 +1469,10 @@ img {
   margin-bottom: 20px;
 }
 
+#logOutBtn {
+  margin-bottom: 14px;
+}
+
 #clearDataBtn {
   margin-bottom: 10px;
 }
@@ -1397,11 +1503,16 @@ img {
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 2px;
 }
 
 .swatch {
   width: 34px;
   height: 34px;
+  min-width: 34px;
+  flex-shrink: 0;
   border-radius: 50%;
   border: 3px solid transparent;
   cursor: pointer;
